@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Scale Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .print-cover-page {
+            display: none;
+        }
+
+        @media print {
+            body, html, #root {
+                background: white !important;
+                color: black !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .print-cover-page {
+                display: block !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                padding-top: 80px !important;
+                background: white !important;
+                color: black !important;
+            }
+
+            .main-print-expand, .grid, .space-y-4 {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .print-card {
+                background: white !important;
+                border: none !important;
+                color: black !important;
+                box-shadow: none !important;
+                display: block !important;
+                page-break-inside: avoid !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                margin: 0 0 20px 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            .print-card:last-of-type {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+            .print-text { color: black !important; }
+            .print-table-header { background-color: #f1f5f9 !important; color: #0f172a !important; border-bottom: 2px solid #cbd5e1 !important; }
+            .print-border { border-color: #e2e8f0 !important; }
+            th, td { color: black !important; padding: 6px !important; }
+
+            /* Guaranteed hide for UI elements during print */
+            #root .no-print, #root .sidebar-print-hide {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-blue-600 selection:text-white">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        const DefaultMatrix = [
+          { step: 1, bSalary: 53237, bCount: 12, mCount: 5, m30Count: 0 },
+          { step: 2, bSalary: 54372, bCount: 13.25, mCount: 6, m30Count: 0 },
+          { step: 3, bSalary: 55507, bCount: 9, mCount: 8, m30Count: 1 },
+          { step: 4, bSalary: 56642, bCount: 2, mCount: 1, m30Count: 0 },
+          { step: 5, bSalary: 57777, bCount: 0, mCount: 3, m30Count: 0 },
+          { step: 6, bSalary: 58912, bCount: 1, mCount: 2, m30Count: 0 },
+          { step: 7, bSalary: 60047, bCount: 4, mCount: 3, m30Count: 0 },
+          { step: 8, bSalary: 61183, bCount: 2, mCount: 0, m30Count: 0 },
+          { step: 9, bSalary: 62318, bCount: 0, mCount: 0, m30Count: 0 },
+          { step: 10, bSalary: 63453, bCount: 4, mCount: 3, m30Count: 0 },
+          { step: 11, bSalary: 64588, bCount: 0, mCount: 1, m30Count: 0 },
+          { step: 12, bSalary: 65723, bCount: 1, mCount: 2, m30Count: 0 },
+          { step: 13, bSalary: 66858, bCount: 2, mCount: 0, m30Count: 0 },
+          { step: 14, bSalary: 67993, bCount: 3, mCount: 0, m30Count: 0 },
+          { step: 15, bSalary: 69128, bCount: 2, mCount: 2, m30Count: 0 },
+          { step: 16, bSalary: 70263, bCount: 4, mCount: 0, m30Count: 0 },
+          { step: 17, bSalary: 71398, bCount: 2, mCount: 2, m30Count: 0 },
+          { step: 18, bSalary: 72534, bCount: 0, mCount: 0, m30Count: 0 },
+          { step: 19, bSalary: 73669, bCount: 3, mCount: 5, m30Count: 2 },
+          { step: 20, bSalary: 75517, bCount: 1, mCount: 1, m30Count: 2 },
+          { step: 21, bSalary: 77330, bCount: 5, mCount: 4, m30Count: 0 }
+        ];
+
+        const AnalyticsBargainingEngine = () => {
+          const [years, setYears] = useState(4);
+
+          const [annualIncreases, setAnnualIncreases] = useState([3.99, 3.99, 3.99, 3.99, 3.99, 3.99, 3.99, 3.99]);
+          const [superMaxAmount, setSuperMaxAmount] = useState(3800);
+          const [targetStepPct, setTargetStepPct] = useState("");
+
+          const [stepCompression, setStepCompression] = useState(50);
+          const [useSmoothing, setUseSmoothing] = useState(true);
+          const [targetUniformGap, setTargetUniformGap] = useState(1500);
+
+          const [targetCompactionCuts, setTargetCompactionCuts] = useState(0);
+          const [compactionYear, setCompactionYear] = useState(1);
+
+          const [useSmartBoost, setUseSmartBoost] = useState(true);
+          const [cosmeticGapOverride, setCosmeticGapOverride] = useState(599);
+
+          const [autoCleanGaps, setAutoCleanGaps] = useState(true);
+
+          const [isConfiguring, setIsConfiguring] = useState(false);
+          const [matrix, setMatrix] = useState(DefaultMatrix);
+
+          const [userStep, setUserStep] = useState(2);
+          const [userLane, setUserLane] = useState('m');
+          const [insurance, setInsurance] = useState('single');
+
+          const LANE_DIFF = 1000;
+          const actualCompYear = Math.min(compactionYear, years);
+
+          const [monthlyHealthcare, setMonthlyHealthcare] = useState({
+            single: [0, 20, 20, 20, 20, 20, 20, 20, 20],
+            nonSingle: [0, 40, 40, 40, 40, 40, 40, 40, 40]
+          });
+
+          const formatCount = (num) => {
+            const n = Number(num);
+            return Number.isInteger(n) ? n : n.toFixed(2);
+          };
+
+          const safeCSVParseRow = (text) => {
+            let row = [''], inQuotes = false;
+            for (let char of text) {
+              if (char === '"') inQuotes = !inQuotes;
+              else if (char === ',' && !inQuotes) row.push('');
+              else row[row.length - 1] += char;
+            }
+            return row.map(str => str.trim());
+          };
+
+          const handleCSVImport = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              const text = evt.target.result;
+              const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+              if (lines.length <= 1) return;
+
+              const headersRaw = safeCSVParseRow(lines[0]);
+              const headers = headersRaw.map(h => h.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+
+              const stepIdx = headers.indexOf('step');
+              const salaryIdx = headers.indexOf('salary') !== -1 ? headers.indexOf('salary') : headers.indexOf('bsalary');
+              const bCountIdx = headers.indexOf('b_count');
+              const mCountIdx = headers.indexOf('m_count');
+              const m30CountIdx = headers.indexOf('m30_count');
+
+              if (stepIdx === -1 || salaryIdx === -1 || bCountIdx === -1) {
+                alert(`CSV Headers missing. Must contain exactly: Step, Salary, B_Count, M_Count, M30_Count`);
+                return;
+              }
+
+              const cleanNum = (val) => {
+                if (!val) return 0;
+                const cleaned = val.toString().replace(/[^0-9.-]/g, '');
+                return Number(cleaned) || 0;
+              };
+
+              const parsed = lines.slice(1).map(line => {
+                const parts = safeCSVParseRow(line);
+                return {
+                  step: parts[stepIdx],
+                  bSalary: cleanNum(parts[salaryIdx]),
+                  bCount: cleanNum(parts[bCountIdx]),
+                  mCount: cleanNum(parts[mCountIdx]),
+                  m30Count: cleanNum(parts[m30CountIdx])
+                };
+              }).filter(row => row.bSalary > 0);
+
+              if (parsed.length > 0) {
+                parsed.sort((a, b) => Number(a.bSalary) - Number(b.bSalary));
+                setMatrix(parsed);
+                setUserStep(parsed[0].step);
+              }
+            };
+            reader.readAsText(file);
+          };
+
+          const calculatePayroll = (grid) => {
+            return grid.reduce((sum, r) => {
+              return sum + (Number(r.bSalary) * Number(r.bCount)) + ((Number(r.bSalary) + LANE_DIFF) * Number(r.mCount)) + ((Number(r.bSalary) + LANE_DIFF * 2) * Number(r.m30Count));
+            }, 0);
+          };
+
+          // --- CORE ALGORITHM ---
+          const generateModelOutput = (initialGrid, increaseArray, superMaxVal, comp, totalCutsAllowed, applySmoothing, targetGap, applySmartBoost, cosmeticGap, compYear, applyAutoClean) => {
+            let results = [];
+
+            let current = [...initialGrid.map(m => ({...m}))];
+            const initialPayroll = calculatePayroll(current);
+            results.push({
+                year: 0,
+                matrix: current,
+                gridCost: initialPayroll,
+                totalCost: initialPayroll + Number(superMaxVal),
+                baseRaise: 0,
+                stepMovementCost: 0,
+                stepMovementPct: 0,
+                compactedThisYear: false
+            });
+
+            for (let y = 1; y <= years; y++) {
+              const previousPayroll = calculatePayroll(current);
+
+              // Target Budget incorporates ONLY the percentage increase for the grid.
+              const targetBudget = (previousPayroll * (1 + ((Number(increaseArray[y - 1]) || 0) / 100)));
+
+              let nextLayout = current.map(r => ({ ...r, bCount: 0, mCount: 0, m30Count: 0, totalPop: 0 }));
+              for (let i = 0; i < current.length; i++) {
+                const targetIndex = i === current.length - 1 ? i : i + 1;
+                nextLayout[targetIndex].bCount += Number(current[i].bCount);
+                nextLayout[targetIndex].mCount += Number(current[i].mCount);
+                nextLayout[targetIndex].m30Count += Number(current[i].m30Count);
+              }
+              nextLayout.forEach(r => r.totalPop = Number(r.bCount) + Number(r.mCount) + Number(r.m30Count));
+
+              let compactedThisYear = false;
+              if (y === compYear) {
+                let cutsToMake = totalCutsAllowed;
+                while (cutsToMake > 0 && nextLayout.length > 1 && nextLayout[0].totalPop === 0) {
+                  nextLayout.shift();
+                  compactedThisYear = true;
+                  cutsToMake--;
+                }
+              }
+
+              const costOfStepOnly = nextLayout.reduce((sum, r) => {
+                const historicalMatch = current.find(oldRow => oldRow.step === r.step) || current[current.length - 1];
+                const base = Number(historicalMatch.bSalary);
+                return sum + (base * Number(r.bCount)) + ((base + LANE_DIFF) * Number(r.mCount)) + ((base + LANE_DIFF * 2) * Number(r.m30Count));
+              }, 0);
+
+              const stepMovementCost = costOfStepOnly - previousPayroll;
+              const stepMovementPct = previousPayroll > 0 ? (stepMovementCost / previousPayroll) * 100 : 0;
+              const leftover = targetBudget - costOfStepOnly;
+              const totalHeadcount = nextLayout.reduce((sum, r) => sum + r.totalPop, 0);
+
+              let finalized = [];
+              let yearBaseRaise = 0;
+
+              if (applySmoothing) {
+                let corrections = new Array(nextLayout.length).fill(0);
+                for (let i = 1; i < nextLayout.length; i++) {
+                  const historicalCurrent = current.find(oldRow => oldRow.step === nextLayout[i].step) || current[current.length - 1];
+                  const historicalBelow = current.find(oldRow => oldRow.step === nextLayout[i-1].step) || current[current.length - 1];
+                  const currentGap = Number(historicalCurrent.bSalary) - Number(historicalBelow.bSalary);
+                  const gapDiff = targetGap - currentGap;
+                  // Round the correction first to ensure perfect integer spacing
+                  const annualCorrection = Math.round(gapDiff / (years - y + 1));
+                  corrections[i] = corrections[i-1] + annualCorrection;
+                }
+
+                const minCorrection = Math.min(...corrections);
+                const normalizedCorrections = corrections.map(c => c - minCorrection);
+                const correctionCost = nextLayout.reduce((sum, r, idx) => sum + (normalizedCorrections[idx] * r.totalPop), 0);
+                const flatPool = leftover - correctionCost;
+
+                // Round the flat raise so all math stays integer-based
+                const flatRaise = Math.round(totalHeadcount > 0 ? flatPool / totalHeadcount : 0);
+                yearBaseRaise = flatRaise;
+
+                finalized = nextLayout.map((row, index) => {
+                  const baseOld = Number(current.find(old => old.step === row.step)?.bSalary || current[current.length-1].bSalary);
+
+                  // cellRaise is now inherently a clean integer
+                  let cellRaise = flatRaise + normalizedCorrections[index];
+                  if (index === nextLayout.length - 1 && cellRaise < 500) cellRaise = 500;
+
+                  let newBase = baseOld + cellRaise;
+                  return { ...row, bSalary: newBase, appliedRaise: cellRaise };
+                });
+
+              } else {
+                let weightedIndexSum = 0;
+                let maxPopulatedIndex = 0;
+                nextLayout.forEach((r, idx) => {
+                  if (r.totalPop > 0) {
+                    weightedIndexSum += (r.totalPop * idx);
+                    maxPopulatedIndex = Math.max(maxPopulatedIndex, idx);
+                  }
+                });
+
+                const maxAllowedComp = totalHeadcount > 0 && maxPopulatedIndex > 0
+                  ? Math.max(0, (leftover - (500 * totalHeadcount)) / ((maxPopulatedIndex * totalHeadcount) - weightedIndexSum))
+                  : comp;
+
+                // Round the parameters first
+                const safeComp = Math.round(maxAllowedComp > 0 ? Math.min(comp, maxAllowedComp) : 0);
+                const baseRaise = Math.round(totalHeadcount > 0 ? (leftover + (safeComp * weightedIndexSum)) / totalHeadcount : 0);
+                yearBaseRaise = baseRaise;
+
+                finalized = nextLayout.map((row, index) => {
+                  const historicalMatch = current.find(oldRow => oldRow.step === row.step) || current[current.length - 1];
+                  let cellRaise = 0;
+                  if (row.totalPop > 0) {
+                    cellRaise = Math.max(500, baseRaise - (index * safeComp));
+                  } else {
+                    cellRaise = baseRaise - (index * safeComp);
+                  }
+
+                  // cellRaise is now perfectly integer
+                  let newBase = Number(historicalMatch.bSalary) + cellRaise;
+                  return { ...row, bSalary: newBase, appliedRaise: cellRaise };
+                });
+              }
+
+              if (applyAutoClean && y === 1 && !applySmoothing && finalized.length > 1) {
+                let gaps = [];
+                for(let i = 0; i < finalized.length - 1; i++){
+                  gaps.push(Number(finalized[i+1].bSalary) - Number(finalized[i].bSalary));
+                }
+
+                let counts = {};
+                let maxCount = 0;
+                let modeGap = gaps[0];
+                gaps.forEach(g => {
+                  counts[g] = (counts[g] || 0) + 1;
+                  if(counts[g] > maxCount) { maxCount = counts[g]; modeGap = g; }
+                });
+
+                let currentSal = Number(finalized[0].bSalary);
+                for(let i = 0; i < finalized.length - 1; i++){
+                  let originalGap = Number(finalized[i+1].bSalary) - Number(finalized[i].bSalary);
+                  if (Math.abs(originalGap - modeGap) > 0 && Math.abs(originalGap - modeGap) <= 5) {
+                    currentSal += Math.round(modeGap);
+                  } else {
+                    currentSal += Math.round(originalGap);
+                  }
+
+                  finalized[i+1].bSalary = Math.round(currentSal);
+                  const oldBase = Number(current.find(c => c.step === finalized[i+1].step)?.bSalary || 0);
+                  finalized[i+1].appliedRaise = Math.round(finalized[i+1].bSalary - oldBase);
+                }
+              }
+
+              if (applySmartBoost) {
+                let firstPopIdx = finalized.findIndex(r => r.totalPop > 0);
+                if (firstPopIdx === -1) firstPopIdx = finalized.length - 1;
+
+                for (let i = firstPopIdx - 1; i >= 0; i--) {
+                  finalized[i].bSalary = Math.round(finalized[i+1].bSalary - cosmeticGap);
+                  const oldBase = Number(current.find(c => c.step === finalized[i].step)?.bSalary || 0);
+                  finalized[i].appliedRaise = Math.round(finalized[i].bSalary - oldBase);
+                }
+              }
+
+              // --- THE TOP STEP PLUG LOGIC ---
+              let draftGridCost = calculatePayroll(finalized);
+              let remainder = targetBudget - draftGridCost;
+              let topStepRow = finalized[finalized.length - 1];
+
+              if (topStepRow.totalPop > 0) {
+                  let topStepAdjustment = Math.round(remainder / topStepRow.totalPop);
+                  topStepRow.bSalary += topStepAdjustment;
+                  topStepRow.appliedRaise += topStepAdjustment;
+
+                  // Recalculate grid cost after top step adjustment
+                  draftGridCost = calculatePayroll(finalized);
+              }
+
+              results.push({
+                year: y,
+                matrix: finalized,
+                gridCost: draftGridCost,
+                totalCost: draftGridCost + Number(superMaxVal),
+                baseRaise: yearBaseRaise,
+                stepMovementCost,
+                stepMovementPct,
+                compactedThisYear
+              });
+
+              current = finalized;
+            }
+            return results;
+          };
+
+          const runTargetedStepPctReduction = () => {
+            if (!targetStepPct || isNaN(targetStepPct)) return;
+            const targetPct = Number(targetStepPct);
+            let low = 0, high = 1500, iterations = 0;
+            let bestC = stepCompression;
+            let closestDelta = Infinity;
+
+            while (low <= high && iterations < 60) {
+              const mid = Math.floor((low + high) / 2);
+              const model = generateModelOutput(matrix, annualIncreases, superMaxAmount, mid, targetCompactionCuts, false, 0, useSmartBoost, cosmeticGapOverride, actualCompYear, autoCleanGaps);
+              const finalYearPct = model[years].stepMovementPct;
+
+              const delta = Math.abs(finalYearPct - targetPct);
+              if (delta < closestDelta) { closestDelta = delta; bestC = mid; }
+
+              if (finalYearPct > targetPct) { low = mid + 1; } else { high = mid - 1; }
+              iterations++;
+            }
+            setStepCompression(bestC);
+          };
+
+          const modelOutput = useMemo(() => {
+            return generateModelOutput(matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, years, actualCompYear, autoCleanGaps);
+          }, [matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, years, actualCompYear, autoCleanGaps]);
+
+          // --- PERSONAL TRACKER ---
+          const memberNetSummary = useMemo(() => {
+            let trajectory = [];
+            let aggregateNet = 0;
+
+            let currentStepsFromTop = 0;
+            const year0Matrix = modelOutput[0].matrix;
+            const initialIndex = year0Matrix.findIndex(r => r.step == userStep);
+            if (initialIndex !== -1) {
+              currentStepsFromTop = year0Matrix.length - 1 - initialIndex;
+            }
+
+            modelOutput.forEach((proj, y) => {
+              if (y > 0) {
+                currentStepsFromTop = Math.max(0, currentStepsFromTop - 1);
+              }
+
+              let currentIndex = proj.matrix.length - 1 - currentStepsFromTop;
+              let activeRow = proj.matrix[currentIndex];
+              if (!activeRow) return;
+
+              let gross = Number(activeRow.bSalary) || 0;
+              if (userLane === 'm') gross += LANE_DIFF;
+              if (userLane === 'm30') gross += (LANE_DIFF * 2);
+
+              const safeMonthIndex = Math.min(y, (monthlyHealthcare[insurance]?.length - 1) || 0);
+              const monthlyCost = insurance === 'none' ? 0 : (Number(monthlyHealthcare[insurance][safeMonthIndex]) || 0);
+              const annualHcCost = monthlyCost * 12;
+
+              const net = gross - annualHcCost;
+              if (y > 0) aggregateNet += net;
+
+              trajectory.push({
+                year: y,
+                trackingNum: activeRow.step,
+                displayLabel: currentStepsFromTop === 0 ? "TOP" : currentStepsFromTop,
+                gross,
+                annualHcCost,
+                net
+              });
+            });
+
+            return { trajectory, aggregateNet };
+          }, [modelOutput, userStep, userLane, insurance, monthlyHealthcare]);
+
+          const exportToCSV = () => {
+            let csvContent = "Year,To Top,Sheet Step,B Count,M Count,M30 Count,B Base,M Column,M+30 Column,On-Scale Raise,Increment\n";
+
+            modelOutput.forEach((proj, yearIndex) => {
+              proj.matrix.forEach((row, i) => {
+                const nextRow = proj.matrix[i + 1];
+                const increment = nextRow ? nextRow.bSalary - row.bSalary : "";
+                const stepsToTop = proj.matrix.length - 1 - i;
+                const toTopLabel = stepsToTop === 0 ? "TOP" : stepsToTop;
+                const raise = yearIndex === 0 ? "N/A" : Math.round(row.appliedRaise);
+
+                csvContent += `${yearIndex},${toTopLabel},${row.step},${row.bCount},${row.mCount},${row.m30Count},${Math.round(row.bSalary)},${Math.round(row.bSalary + LANE_DIFF)},${Math.round(row.bSalary + LANE_DIFF * 2)},${raise},${increment ? Math.round(increment) : ""}\n`;
+              });
+              csvContent += "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "Bargaining_Schedule_Projections.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          const exportMobileApp = () => {
+            const htmlContent = `<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Contract Proposal Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const YEARS = ${years};
+        const LANE_DIFF = 1000;
+        const MONTHLY_HEALTHCARE = ${JSON.stringify(monthlyHealthcare)};
+        const MODEL_OUTPUT = ${JSON.stringify(modelOutput)};
+
+        const MemberPortal = () => {
+          const [userStep, setUserStep] = useState(MODEL_OUTPUT[0].matrix[0].step);
+          const [userLane, setUserLane] = useState('b');
+          const [insurance, setInsurance] = useState('single');
+
+          const memberTrajectory = useMemo(() => {
+            let trajectory = [];
+            let aggregateNet = 0;
+
+            let currentStepsFromTop = 0;
+            const year0Matrix = MODEL_OUTPUT[0].matrix;
+            const initialIndex = year0Matrix.findIndex(r => r.step == userStep);
+            if (initialIndex !== -1) currentStepsFromTop = year0Matrix.length - 1 - initialIndex;
+
+            MODEL_OUTPUT.forEach((proj, y) => {
+              if (y > 0) currentStepsFromTop = Math.max(0, currentStepsFromTop - 1);
+              let activeRow = proj.matrix[proj.matrix.length - 1 - currentStepsFromTop];
+              if (!activeRow) return;
+
+              let gross = Number(activeRow.bSalary) || 0;
+              if (userLane === 'm') gross += LANE_DIFF;
+              if (userLane === 'm30') gross += (LANE_DIFF * 2);
+
+              const safeMonthIndex = Math.min(y, (MONTHLY_HEALTHCARE[insurance]?.length - 1) || 0);
+              const annualHcCost = insurance === 'none' ? 0 : (MONTHLY_HEALTHCARE[insurance][safeMonthIndex] * 12);
+              const net = gross - annualHcCost;
+
+              if (y > 0) aggregateNet += net;
+
+              trajectory.push({
+                year: y,
+                stepLabel: activeRow.step,
+                gross,
+                annualHcCost,
+                net
+              });
+            });
+
+            return { trajectory, aggregateNet };
+          }, [userStep, userLane, insurance]);
+
+          const totalGrowth = memberTrajectory.trajectory[memberTrajectory.trajectory.length - 1].net - memberTrajectory.trajectory[0].net;
+
+          return (
+            <div class="max-w-md mx-auto min-h-screen bg-slate-950 pb-12">
+                <div class="bg-slate-900 border-b border-slate-800 px-6 pt-10 pb-8 shadow-2xl rounded-b-3xl">
+                    <h1 class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Contract Proposal</h1>
+                    <h2 class="text-2xl font-black text-white leading-tight">Your Pay Estimator</h2>
+                    <p class="text-sm text-slate-400 mt-2">{"See exactly how the proposed " + YEARS + "-year agreement increases your salary."}</p>
+                </div>
+
+                <div class="px-6 mt-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Current Base Step</label>
+                        <select value={userStep} onChange={(e) => setUserStep(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                            {MODEL_OUTPUT[0].matrix.map(m => (
+                            <option key={m.step} value={m.step}>{"Step " + m.step}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Current Column / Track</label>
+                        <select value={userLane} onChange={(e) => setUserLane(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                            <option value="b">Bachelors (B)</option>
+                            <option value="m">Masters (M)</option>
+                            <option value="m30">Masters + 30 (M+30)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Healthcare Election</label>
+                        <select value={insurance} onChange={(e) => setInsurance(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                            <option value="single">Single Plan</option>
+                            <option value="nonSingle">Non-Single Plan (Family/Couple)</option>
+                            <option value="none">Opt-Out / No District Healthcare</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="px-6 mt-8">
+                    <div class="bg-emerald-950/40 border border-emerald-900/50 rounded-2xl p-6 text-center shadow-[0_0_40px_-10px_rgba(16,185,129,0.2)]">
+                        <span class="block text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">{"Total " + YEARS + "-Year Contract Value"}</span>
+                        <div class="text-4xl font-black text-emerald-400 font-mono tracking-tight shadow-emerald-400/20 drop-shadow-lg">
+                            {"$" + Math.round(memberTrajectory.aggregateNet).toLocaleString()}
+                        </div>
+                        <span class="block text-[10px] text-slate-500 mt-2 font-medium">{"Combined net take-home pay over " + YEARS + " years."}</span>
+
+                        <div class="mt-4 pt-4 border-t border-emerald-800/50">
+                            <span class="block text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">Final Year Net Increase</span>
+                            <div class="text-2xl font-black text-white font-mono">
+                                {"+$" + Math.round(totalGrowth).toLocaleString()}
+                            </div>
+                            <span class="block text-[10px] text-slate-500 mt-1 font-medium">{"How much more you will take home in Year " + YEARS + " vs. today."}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 mt-8 space-y-4">
+                    <h3 class="text-sm font-bold text-white border-b border-slate-800 pb-2 ml-1">Year-by-Year Breakdown</h3>
+
+                    {memberTrajectory.trajectory.map((t, idx) => (
+                        <div key={idx} class={"p-5 rounded-xl border " + (idx === 0 ? "bg-slate-900/50 border-slate-800 border-dashed" : "bg-slate-900 border-slate-700 shadow-md")}>
+                            <div class="flex justify-between items-end mb-3">
+                                <div>
+                                    <div class={"text-sm font-black " + (idx === 0 ? "text-slate-400" : "text-blue-400")}>
+                                        {idx === 0 ? "Current Pay (Baseline)" : "Contract Year " + idx}
+                                    </div>
+                                    <div class="text-xs text-slate-500 font-medium mt-0.5">{"Assumed Level: Step " + t.stepLabel}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Net Pay</div>
+                                    <div class={"text-xl font-black font-mono " + (idx === 0 ? "text-slate-300" : "text-white")}>
+                                        {"$" + Math.round(t.net).toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between items-center pt-3 border-t border-slate-800/80">
+                                <div class="text-xs text-slate-400">
+                                    <span class="text-slate-500 block mb-0.5">Gross Salary</span>
+                                    <span class="font-mono font-semibold">{"$" + Math.round(t.gross).toLocaleString()}</span>
+                                </div>
+                                <div class="text-xs text-right text-slate-400">
+                                    <span class="text-slate-500 block mb-0.5">Annual Health Ins.</span>
+                                    <span class="font-mono text-slate-400 font-medium">{"-$" + Math.round(t.annualHcCost).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div class="text-center mt-10 px-6">
+                    <p class="text-[10px] text-slate-600 font-medium">Calculations are modeled estimates based on proposed matrix distribution rules and current step placements. Consult final printed TA for official figures.</p>
+                </div>
+
+            </div>
+          );
+        };
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<MemberPortal />);
+    <\/script>
+</body>
+</html>`;
+
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "Mobile_Member_Calculator.html");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          return (
+            <div class="p-6 max-w-[90rem] mx-auto space-y-6">
+
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-slate-900 border border-slate-800 rounded-xl gap-4 no-print">
+                <div>
+                  <h1 class="text-2xl font-black text-white tracking-tight">Salary Scale Analyzer</h1>
+                  <p class="text-xs text-slate-400 mt-1">Labor scale modeling tool with fractional counts, smoothing, and CSV import.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button onClick={exportToCSV} class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm rounded-lg shadow-lg shadow-emerald-700/20 transition cursor-pointer whitespace-nowrap">
+                    Export to Excel
+                  </button>
+                  <button onClick={exportMobileApp} class="px-4 py-2.5 bg-indigo-700 hover:bg-indigo-600 text-white font-semibold text-sm rounded-lg shadow-lg shadow-indigo-700/20 transition cursor-pointer whitespace-nowrap">
+                    Export Mobile Portal
+                  </button>
+                  <button onClick={() => window.print()} class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm rounded-lg border border-slate-700 transition cursor-pointer whitespace-nowrap">
+                    Print Results
+                  </button>
+                  <button onClick={() => setIsConfiguring(!isConfiguring)} class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-lg shadow-lg shadow-blue-600/20 transition cursor-pointer whitespace-nowrap">
+                    {isConfiguring ? "Calculate Projections" : "Import Data"}
+                  </button>
+                </div>
+              </div>
+
+              {/* COVER PAGE (ONLY VISIBLE ON PRINT) */}
+              {!isConfiguring && (
+                <div class="print-cover-page">
+                  <h1 style={{ fontSize: '3rem', fontWeight: '900', borderBottom: '4px solid #1e293b', paddingBottom: '20px', marginBottom: '40px' }}>
+                    Bargaining Proposal Summary
+                  </h1>
+
+                  <div style={{ marginBottom: '40px' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em', marginBottom: '8px' }}>Contract Details</h2>
+                    <p style={{ fontSize: '1.5rem', fontWeight: '600' }}>Length: {years} Years</p>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px' }}>
+                    <div style={{ width: '48%' }}>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em', marginBottom: '16px' }}>Annual Raise Budget (%)</h2>
+                      <ul style={{ listStyleType: 'none', padding: 0, fontSize: '1.25rem' }}>
+                        {annualIncreases.slice(0, years).map((inc, i) => (
+                          <li key={i} style={{ marginBottom: '8px' }}>
+                            <span style={{ fontWeight: 'bold', display: 'inline-block', width: '100px' }}>Year {i+1}:</span> {inc}%
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div style={{ width: '48%' }}>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em', marginBottom: '16px' }}>Super Max Additions</h2>
+                      <p style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+                        ${Math.round(superMaxAmount).toLocaleString()} per year
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '40px' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em', marginBottom: '16px' }}>Matrix Parameters</h2>
+                    <ul style={{ listStyleType: 'none', padding: 0, fontSize: '1.25rem' }}>
+                      <li style={{ marginBottom: '12px' }}>
+                        <span style={{ fontWeight: 'bold' }}>Distribution Strategy:</span> {useSmoothing ? `Smooth Steps (Target Increment: $${targetUniformGap})` : `Weighted Compression ($${stepCompression}/yr)`}
+                      </li>
+                      <li style={{ marginBottom: '12px' }}>
+                        <span style={{ fontWeight: 'bold' }}>Bottom Step Compaction:</span> {targetCompactionCuts > 0 ? `Dropping ${targetCompactionCuts} step(s) in Year ${compactionYear}` : 'None'}
+                      </li>
+                      <li style={{ marginBottom: '12px' }}>
+                        <span style={{ fontWeight: 'bold' }}>Starting Salary Bump:</span> {useSmartBoost ? `Boosted unpopulated steps to $${cosmeticGapOverride} gaps` : 'None'}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {isConfiguring ? (
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
+                  <div class="lg:col-span-2 p-6 bg-slate-900 border border-slate-800 rounded-xl space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                      <h2 class="text-base font-bold text-slate-200">Salary Grid Data</h2>
+                      <label class="text-xs font-semibold bg-slate-800 px-3 py-1.5 rounded-md cursor-pointer hover:bg-slate-700 border border-slate-700">
+                        Upload Spreadsheet (.csv)
+                        <input type="file" accept=".csv" onChange={handleCSVImport} class="hidden"/>
+                      </label>
+                    </div>
+
+                    <div class="max-h-[450px] overflow-y-auto pr-2">
+                      <div class="grid grid-cols-5 gap-2 text-center text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
+                        <div class="text-left">Sheet Step</div>
+                        <div>Base Salary (Raw)</div>
+                        <div>Count B</div>
+                        <div>Count M</div>
+                        <div>Count M+30</div>
+                      </div>
+                      {matrix.map((row, i) => (
+                        <div key={i} class="grid grid-cols-5 gap-2 items-center text-center mb-1">
+                          <div class="text-sm font-semibold text-left text-slate-400">Step {row.step}</div>
+                          <input type="number" value={row.bSalary} onChange={(e) => {
+                            const updated = [...matrix]; updated[i].bSalary = Number(e.target.value); setMatrix(updated);
+                          }} class="bg-slate-950 border border-slate-800 rounded p-1 text-sm text-center text-slate-200 focus:border-blue-500 outline-none"/>
+                          <input type="number" step="any" value={row.bCount} onChange={(e) => {
+                            const updated = [...matrix]; updated[i].bCount = e.target.value; setMatrix(updated);
+                          }} class="bg-slate-950 border border-slate-800 rounded p-1 text-sm text-center text-slate-200 focus:border-blue-500 outline-none"/>
+                          <input type="number" step="any" value={row.mCount} onChange={(e) => {
+                            const updated = [...matrix]; updated[i].mCount = e.target.value; setMatrix(updated);
+                          }} class="bg-slate-950 border border-slate-800 rounded p-1 text-sm text-center text-slate-200 focus:border-blue-500 outline-none"/>
+                          <input type="number" step="any" value={row.m30Count} onChange={(e) => {
+                            const updated = [...matrix]; updated[i].m30Count = e.target.value; setMatrix(updated);
+                          }} class="bg-slate-950 border border-slate-800 rounded p-1 text-sm text-center text-slate-200 focus:border-blue-500 outline-none"/>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl space-y-6">
+                    <h2 class="text-base font-bold text-slate-200 border-b border-slate-800 pb-2">Healthcare Deductions</h2>
+                    <p class="text-[11px] text-slate-400 font-medium">Enter the <span class="text-white">Monthly Deduction ($/mo)</span>.</p>
+                    <div>
+                      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Single Coverage ($/mo)</h3>
+                      <div class="flex flex-wrap gap-2">
+                        {monthlyHealthcare.single.slice(0, years + 1).map((v, y) => (
+                          <div key={y} class="w-16">
+                            <span class="text-[10px] text-slate-500 block text-center mb-0.5">Y{y}</span>
+                            <input type="number" value={v} onChange={(e) => {
+                              const updated = [...monthlyHealthcare.single]; updated[y] = Number(e.target.value); setMonthlyHealthcare(prev => ({ ...prev, single: updated }));
+                            }} class="w-full bg-slate-950 border border-slate-800 rounded p-1 text-xs text-center text-slate-300"/>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2 mt-4">Non-Single Coverage ($/mo)</h3>
+                      <div class="flex flex-wrap gap-2">
+                        {monthlyHealthcare.nonSingle.slice(0, years + 1).map((v, y) => (
+                          <div key={y} class="w-16">
+                            <span class="text-[10px] text-slate-500 block text-center mb-0.5">Y{y}</span>
+                            <input type="number" value={v} onChange={(e) => {
+                              const updated = [...monthlyHealthcare.nonSingle]; updated[y] = Number(e.target.value); setMonthlyHealthcare(prev => ({ ...prev, nonSingle: updated }));
+                            }} class="w-full bg-slate-950 border border-slate-800 rounded p-1 text-xs text-center text-slate-300"/>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div class="space-y-6">
+                  {/* Controls Panel */}
+                  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6 bg-slate-900 border border-slate-800 rounded-xl shadow-xl no-print">
+
+                    <div class="space-y-4">
+                      <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Contract Length</label>
+                        <select value={years} onChange={(e) => setYears(Number(e.target.value))} class="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded p-1.5 text-sm outline-none focus:border-blue-500">
+                          {[2,3,4,5,6,7,8].map(y => <option key={y} value={y}>{y} Years</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Annual Raise Budget (%)</label>
+                        <div class="grid grid-cols-4 gap-1.5">
+                          {annualIncreases.slice(0, years).map((val, idx) => (
+                            <div key={idx}>
+                              <span class="text-[9px] text-slate-500 font-bold block mb-0.5">Y{idx+1}</span>
+                              <input type="number" step="0.05" value={val} onChange={(e) => {
+                                  const nextIncreases = [...annualIncreases];
+                                  nextIncreases[idx] = parseFloat(e.target.value) || 0;
+                                  setAnnualIncreases(nextIncreases);
+                                }} class="w-full bg-slate-950 border border-slate-800 rounded p-1.5 text-sm text-center font-bold font-mono focus:border-blue-500 outline-none text-white"/>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Super Max Payment ($)</label>
+                        <input type="number" step="100" value={superMaxAmount} onChange={(e) => setSuperMaxAmount(Number(e.target.value))} class="w-full bg-slate-950 border border-slate-800 rounded p-1.5 text-sm font-bold font-mono focus:border-blue-500 outline-none text-emerald-400"/>
+                        <span class="text-[9px] text-slate-500 leading-tight block mt-1">Flat dollar amount added to the total cost every year (uncompounded).</span>
+                      </div>
+                    </div>
+
+                    <div class="space-y-4 border-t lg:border-t-0 lg:border-x border-slate-800 pt-4 lg:pt-0 lg:px-4 flex flex-col justify-between">
+                      <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Remove Bottom Steps (Compaction)</label>
+                        <div class="flex items-center gap-2">
+                          <select value={targetCompactionCuts} onChange={(e) => setTargetCompactionCuts(Number(e.target.value))} class="bg-slate-950 border border-slate-800 text-slate-200 rounded p-1 text-sm outline-none focus:border-blue-500 w-1/2">
+                            <option value={0}>Drop 0 Steps</option>
+                            <option value={1}>Drop 1 Step</option>
+                            <option value={2}>Drop 2 Steps</option>
+                            <option value={3}>Drop 3 Steps</option>
+                            <option value={4}>Drop 4 Steps</option>
+                          </select>
+                          <select value={compactionYear} onChange={(e) => setCompactionYear(Number(e.target.value))} class="bg-slate-950 border border-slate-800 text-slate-200 rounded p-1 text-sm outline-none focus:border-blue-500 w-1/2">
+                            {[...Array(years)].map((_, i) => <option key={i+1} value={i+1}>in Year {i+1}</option>)}
+                          </select>
+                        </div>
+                        <span class="text-[9px] text-slate-500 leading-tight block mt-1">Permanently deletes bottom step(s) in selected year if headcount = 0.</span>
+                      </div>
+
+                      <label class="flex items-start gap-3 cursor-pointer p-2 rounded border border-slate-800 hover:bg-slate-800/50 transition">
+                        <input type="checkbox" checked={useSmartBoost} onChange={(e) => setUseSmartBoost(e.target.checked)} class="w-5 h-5 accent-emerald-500 mt-1" />
+                        <div class="w-full">
+                          <span class="text-sm font-bold text-white block">Starting Salary Bump</span>
+                          <div class="flex items-center gap-2 mt-1">
+                            <span class="text-slate-500 text-xs">$</span>
+                            <input type="number" value={cosmeticGapOverride} onChange={(e) => setCosmeticGapOverride(Number(e.target.value))} onClick={e => e.stopPropagation()} disabled={!useSmartBoost} class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white disabled:opacity-50"/>
+                          </div>
+                          <span class="text-[9px] text-slate-500 leading-tight block mt-1">Boosts unpopulated trailing steps to this exact dollar gap.</span>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div class="space-y-3 border-t lg:border-t-0 lg:border-r border-slate-800 pt-4 lg:pt-0 lg:pr-4 flex flex-col justify-between">
+                      <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Raise Distribution</label>
+
+                      <label class={`p-2 block rounded border cursor-pointer transition ${!useSmoothing ? 'bg-blue-900/20 border-blue-500/50' : 'bg-slate-950 border-slate-800'}`}>
+                        <div class="flex items-center gap-2 mb-1">
+                          <input type="radio" checked={!useSmoothing} onChange={() => setUseSmoothing(false)} class="accent-blue-500 w-4 h-4" />
+                          <span class="text-sm font-bold text-white">Weighted Distribution</span>
+                        </div>
+                        <div class="flex items-center gap-2 ml-6">
+                          <span class="text-slate-500 text-xs">$</span>
+                          <input type="number" value={stepCompression} onChange={(e) => setStepCompression(Number(e.target.value))} onClick={e => e.stopPropagation()} class="w-16 bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white" disabled={useSmoothing}/>
+                          <span class="text-[10px] text-slate-500">Shrink gaps/yr</span>
+                        </div>
+                        <div class="mt-2 ml-6">
+                           <label class="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={autoCleanGaps} onChange={(e) => setAutoCleanGaps(e.target.checked)} disabled={useSmoothing} class="w-3 h-3 accent-blue-500" />
+                              <span class={`text-[10px] ${useSmoothing ? 'text-slate-600' : 'text-slate-300'}`}>Auto-Fix $1-$5 Errors in Y1</span>
+                           </label>
+                        </div>
+                      </label>
+
+                      <label class={`p-2 block rounded border cursor-pointer transition ${useSmoothing ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-slate-950 border-slate-800'}`}>
+                        <div class="flex items-center gap-2 mb-1">
+                          <input type="radio" checked={useSmoothing} onChange={() => setUseSmoothing(true)} class="accent-emerald-500 w-4 h-4" />
+                          <span class="text-sm font-bold text-white">Smooth Steps (Even Gaps)</span>
+                        </div>
+                        <div class="flex items-center gap-2 ml-6">
+                          <span class="text-slate-500 text-xs">$</span>
+                          <input type="number" value={targetUniformGap} onChange={(e) => setTargetUniformGap(Number(e.target.value))} onClick={e => e.stopPropagation()} class="w-16 bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white" disabled={!useSmoothing}/>
+                          <span class="text-[10px] text-slate-500">Target increment by end</span>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div class="space-y-2 pt-4 lg:pt-0">
+                      <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Solve Target Average Raise (%)</label>
+                      <div class="flex gap-2">
+                        <input type="number" step="0.1" placeholder="e.g. 1.0" value={targetStepPct} onChange={(e) => setTargetStepPct(e.target.value)} class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-white w-full outline-none focus:border-blue-500"/>
+                        <button onClick={runTargetedStepPctReduction} disabled={useSmoothing} class="px-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold transition cursor-pointer">Solve</button>
+                      </div>
+                      <div class="mt-3 p-2 bg-blue-950/30 border border-blue-900/50 rounded flex flex-col justify-center">
+                        <span class="text-[9px] font-bold text-blue-400 uppercase tracking-wider block">Calculation Rules:</span>
+                        <ul class="text-[10px] text-slate-400 space-y-0.5 list-disc pl-3 mt-1">
+                          <li>Top Step locked to &gt; $500 raise.</li>
+                          <li>Entry Boost costs omitted from total pool.</li>
+                          <li>Dropped steps cleanly detach baselines.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+
+                    {/* Personal Tracker (Left) */}
+                    <div class="xl:col-span-4 lg:col-span-4 space-y-6 sidebar-print-hide no-print">
+                      <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl shadow-xl space-y-4 sticky top-6">
+                        <h2 class="text-base font-bold text-white border-b border-slate-800 pb-2 flex justify-between items-center">
+                          <span>Take-Home Pay Estimate</span>
+                        </h2>
+
+                        <div class="space-y-3">
+                          <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Current Step</label>
+                            <select value={userStep} onChange={(e) => setUserStep(e.target.value)} class="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded p-2 text-sm outline-none focus:border-blue-500">
+                              {matrix.map(m => (
+                                <option key={m.step} value={m.step}>Step {m.step}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Current Lane/Column</label>
+                            <select value={userLane} onChange={(e) => setUserLane(e.target.value)} class="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded p-2 text-sm outline-none focus:border-blue-500">
+                              <option value="b">Bachelors Track (B)</option>
+                              <option value="m">Masters Track (M)</option>
+                              <option value="m30">Masters + 30 Track (M+30)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Healthcare Plan</label>
+                            <select value={insurance} onChange={(e) => setInsurance(e.target.value)} class="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded p-2 text-sm outline-none focus:border-blue-500">
+                              <option value="single">Single Plan Model</option>
+                              <option value="nonSingle">Non-Single Plan Model</option>
+                              <option value="none">Opt-Out / No District Healthcare</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div class="space-y-1.5 pt-2 max-h-[400px] overflow-y-auto pr-1">
+                          {memberNetSummary.trajectory.map((t, idx) => (
+                            <div key={idx} class={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-2.5 rounded-lg border ${idx === 0 ? 'bg-slate-950 border-slate-800' : 'bg-slate-850/50 border-transparent'}`}>
+                              <div class="whitespace-nowrap pr-2">
+                                <span class="text-xs font-bold text-blue-400 block sm:inline">{idx === 0 ? 'Current Baseline' : `Contract Year ${idx}`}</span>
+                                <div class="text-[10px] text-slate-400 font-medium">To Top: {t.displayLabel}</div>
+                              </div>
+                              <div class="text-left sm:text-right mt-1 sm:mt-0 flex-shrink-0">
+                                <span class="text-sm font-bold text-slate-200">${Math.round(t.net).toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">Take-Home</span></span>
+                                <div class="text-[9px] text-slate-500 font-mono">Gross: ${Math.round(t.gross).toLocaleString()} | Annual Ins: -${Math.round(t.annualHcCost).toLocaleString()}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-800 bg-slate-950/60 -mx-6 -mb-6 p-6 rounded-b-xl flex justify-between items-center">
+                          <div>
+                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Estimated Take-Home</span>
+                            <span class="text-[9px] text-slate-500">(Years 1-{years} combined)</span>
+                          </div>
+                          <span class="text-xl font-black text-emerald-400 font-mono">${Math.round(memberNetSummary.aggregateNet).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="xl:col-span-8 lg:col-span-8 space-y-4 main-print-expand">
+                      {modelOutput.map((proj, idx) => (
+                        <div key={idx} class={`bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl ${idx === 0 ? 'no-print' : 'print-card'}`}>
+                          <div class="flex justify-between items-center border-b border-slate-800 print-border pb-2 mb-2">
+                            <div>
+                              <div class="flex items-center gap-2">
+                                <h3 class="font-black text-slate-200 text-sm print-text">
+                                  {idx === 0 ? "Baseline Distribution" : `Contract Year ${idx} (${annualIncreases[idx-1]}%)`}
+                                </h3>
+                                {proj.compactedThisYear && (
+                                  <span class="text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded no-print">
+                                    Step(s) Removed (Compacted)
+                                  </span>
+                                )}
+                              </div>
+                              {idx > 0 && (
+                                <p class="text-[10px] text-slate-400 mt-0.5 print-text">
+                                  Step-Movement Cost: <span class="text-amber-400 font-mono font-semibold">${Math.round(proj.stepMovementCost).toLocaleString()}</span>
+                                  <span class="text-slate-500 ml-1 print-text">({proj.stepMovementPct.toFixed(2)}% of previous pool value)</span>
+                                </p>
+                              )}
+                            </div>
+                            <div class="text-right flex flex-col gap-1 items-end">
+                              <span class="text-[10px] font-mono bg-slate-950 px-2.5 py-1 rounded border border-slate-800 text-slate-400 print-text inline-block">
+                                Grid Payroll: ${Math.round(proj.gridCost).toLocaleString()}
+                              </span>
+                              {Number(superMaxAmount) > 0 && (
+                                <span class="text-[10px] font-mono bg-red-950/30 px-2.5 py-1 rounded border border-red-900/50 text-red-400 print-text inline-block">
+                                  Super Max: ${Math.round(superMaxAmount).toLocaleString()}
+                                </span>
+                              )}
+                              <span class="text-[11px] font-mono bg-slate-800 px-2.5 py-1 rounded border border-slate-700 font-bold text-white print-text shadow inline-block">
+                                Total Cost: ${Math.round(proj.totalCost).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <table class="w-full text-center text-xs mt-3">
+                            <thead>
+                              <tr class="text-slate-500 font-bold text-[9px] uppercase tracking-wider border-b border-slate-800 print-table-header">
+                                <th class="p-1 text-left">TO TOP</th>
+                                <th class="p-1 no-print">Sheet Step</th>
+                                <th class="p-1 no-print">Count (B/M/M30)</th>
+                                <th class="p-1 text-slate-300">B Column</th>
+                                <th class="p-1 text-slate-400">M Column</th>
+                                <th class="p-1 text-slate-400">M+30 Column</th>
+                                {idx > 0 && <th class="p-1 text-emerald-500 bg-emerald-950/30 rounded-t border-b border-emerald-900 print-text print-border">On-Scale Raise (+)</th>}
+                                <th class="p-1 text-right text-slate-600">Increment</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {proj.matrix.map((row, i) => {
+                                const nextRow = proj.matrix[i + 1];
+                                const gap = nextRow ? nextRow.bSalary - row.bSalary : null;
+
+                                const stepsToTop = proj.matrix.length - 1 - i;
+                                const countdownLabel = stepsToTop === 0 ? "TOP" : stepsToTop;
+
+                                return (
+                                  <tr key={i} class="border-b border-slate-850/30 hover:bg-slate-850/40 text-slate-300 transition print-border">
+                                    <td class="p-1 font-bold text-left text-white text-xs print-text">{countdownLabel}</td>
+                                    <td class="p-1 text-slate-600 font-mono text-[11px] no-print">Step {row.step}</td>
+                                    <td class="p-1 text-slate-500 font-mono text-[11px] no-print">{formatCount(row.bCount)}/{formatCount(row.mCount)}/{formatCount(row.m30Count)}</td>
+                                    <td class="p-1 font-semibold text-slate-100 print-text">${Math.round(row.bSalary).toLocaleString()}</td>
+                                    <td class="p-1 text-slate-400 print-text">${Math.round(row.bSalary + LANE_DIFF).toLocaleString()}</td>
+                                    <td class="p-1 text-slate-400 print-text">${Math.round(row.bSalary + (LANE_DIFF * 2)).toLocaleString()}</td>
+                                    {idx > 0 && <td class="p-1 text-emerald-400 font-mono bg-emerald-950/20 border-r border-l border-emerald-900/30 font-bold print-text print-border">+${Math.round(row.appliedRaise).toLocaleString()}</td>}
+                                    <td class="p-1 text-right font-mono text-slate-500 text-[11px] print-text">{gap ? `$${Math.round(gap).toLocaleString()}` : '—'}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<AnalyticsBargainingEngine />);
+    </script>
+</body>
+</html>
