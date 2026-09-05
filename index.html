@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Contract Proposal Calculator</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -21,48 +21,145 @@
         const YEARS = 4;
         const LANE_DIFF = 1000;
         const MONTHLY_HEALTHCARE = {"single":[0,20,20,20,20,150,160,170,180],"nonSingle":[0,40,40,40,40,350,370,390,410]};
-        const MODEL_OUTPUT = [{"year":0,"matrix":[{"step":"1","bSalary":53237,"bCount":12,"mCount":5,"m30Count":0},{"step":"2","bSalary":54372,"bCount":13.25,"mCount":6,"m30Count":0},{"step":"3","bSalary":55507,"bCount":9,"mCount":8,"m30Count":1},{"step":"4","bSalary":56642,"bCount":2,"mCount":1,"m30Count":0},{"step":"5","bSalary":57777,"bCount":0,"mCount":3,"m30Count":0},{"step":"6","bSalary":58912,"bCount":1,"mCount":2,"m30Count":0},{"step":"7","bSalary":60047,"bCount":4,"mCount":3,"m30Count":0},{"step":"8","bSalary":61183,"bCount":2,"mCount":0,"m30Count":0},{"step":"9","bSalary":62318,"bCount":0,"mCount":0,"m30Count":0},{"step":"10","bSalary":63453,"bCount":4,"mCount":3,"m30Count":0},{"step":"11","bSalary":64588,"bCount":0,"mCount":1,"m30Count":0},{"step":"12","bSalary":65723,"bCount":1,"mCount":2,"m30Count":0},{"step":"13","bSalary":66858,"bCount":2,"mCount":0,"m30Count":0},{"step":"14","bSalary":67993,"bCount":3,"mCount":0,"m30Count":0},{"step":"15","bSalary":69128,"bCount":2,"mCount":2,"m30Count":0},{"step":"16","bSalary":70263,"bCount":4,"mCount":0,"m30Count":0},{"step":"17","bSalary":71398,"bCount":2,"mCount":2,"m30Count":0},{"step":"18","bSalary":72534,"bCount":0,"mCount":0,"m30Count":0},{"step":"19","bSalary":73669,"bCount":3,"mCount":5,"m30Count":2},{"step":"20","bSalary":75517,"bCount":1,"mCount":1,"m30Count":2},{"step":"21","bSalary":77330,"bCount":5,"mCount":4,"m30Count":0}],"gridCost":7693011,"totalCost":7696811,"baseRaise":0,"stepMovementCost":0,"stepMovementPct":0,"compactedThisYear":false},{"year":1,"matrix":[{"step":"1","bSalary":55115,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":1878},{"step":"2","bSalary":55812,"bCount":12,"mCount":5,"m30Count":0,"totalPop":17,"appliedRaise":1440},{"step":"3","bSalary":56943,"bCount":13.25,"mCount":6,"m30Count":0,"totalPop":19.25,"appliedRaise":1436},{"step":"4","bSalary":58074,"bCount":9,"mCount":8,"m30Count":1,"totalPop":18,"appliedRaise":1432},{"step":"5","bSalary":59205,"bCount":2,"mCount":1,"m30Count":0,"totalPop":3,"appliedRaise":1428},{"step":"6","bSalary":60336,"bCount":0,"mCount":3,"m30Count":0,"totalPop":3,"appliedRaise":1424},{"step":"7","bSalary":61467,"bCount":1,"mCount":2,"m30Count":0,"totalPop":3,"appliedRaise":1420},{"step":"8","bSalary":62598,"bCount":4,"mCount":3,"m30Count":0,"totalPop":7,"appliedRaise":1415},{"step":"9","bSalary":63729,"bCount":2,"mCount":0,"m30Count":0,"totalPop":2,"appliedRaise":1411},{"step":"10","bSalary":64860,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":1407},{"step":"11","bSalary":65991,"bCount":4,"mCount":3,"m30Count":0,"totalPop":7,"appliedRaise":1403},{"step":"12","bSalary":67122,"bCount":0,"mCount":1,"m30Count":0,"totalPop":1,"appliedRaise":1399},{"step":"13","bSalary":68253,"bCount":1,"mCount":2,"m30Count":0,"totalPop":3,"appliedRaise":1395},{"step":"14","bSalary":69384,"bCount":2,"mCount":0,"m30Count":0,"totalPop":2,"appliedRaise":1391},{"step":"15","bSalary":70515,"bCount":3,"mCount":0,"m30Count":0,"totalPop":3,"appliedRaise":1387},{"step":"16","bSalary":71646,"bCount":2,"mCount":2,"m30Count":0,"totalPop":4,"appliedRaise":1383},{"step":"17","bSalary":72777,"bCount":4,"mCount":0,"m30Count":0,"totalPop":4,"appliedRaise":1379},{"step":"18","bSalary":73908,"bCount":2,"mCount":2,"m30Count":0,"totalPop":4,"appliedRaise":1374},{"step":"19","bSalary":75039,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":1370},{"step":"20","bSalary":76704,"bCount":3,"mCount":5,"m30Count":2,"totalPop":10,"appliedRaise":1187},{"step":"21","bSalary":78347,"bCount":6,"mCount":5,"m30Count":2,"totalPop":13,"appliedRaise":1017}],"gridCost":7999962.75,"totalCost":8003762.75,"baseRaise":1013,"stepMovementCost":139526.75,"stepMovementPct":1.8136819250615916,"compactedThisYear":false},{"year":2,"matrix":[{"step":"1","bSalary":57187,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2072},{"step":"2","bSalary":57884,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2072},{"step":"3","bSalary":58581,"bCount":12,"mCount":5,"m30Count":0,"totalPop":17,"appliedRaise":1638},{"step":"4","bSalary":59707,"bCount":13.25,"mCount":6,"m30Count":0,"totalPop":19.25,"appliedRaise":1633},{"step":"5","bSalary":60833,"bCount":9,"mCount":8,"m30Count":1,"totalPop":18,"appliedRaise":1628},{"step":"6","bSalary":61959,"bCount":2,"mCount":1,"m30Count":0,"totalPop":3,"appliedRaise":1623},{"step":"7","bSalary":63085,"bCount":0,"mCount":3,"m30Count":0,"totalPop":3,"appliedRaise":1618},{"step":"8","bSalary":64211,"bCount":1,"mCount":2,"m30Count":0,"totalPop":3,"appliedRaise":1613},{"step":"9","bSalary":65337,"bCount":4,"mCount":3,"m30Count":0,"totalPop":7,"appliedRaise":1608},{"step":"10","bSalary":66463,"bCount":2,"mCount":0,"m30Count":0,"totalPop":2,"appliedRaise":1603},{"step":"11","bSalary":67589,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":1598},{"step":"12","bSalary":68715,"bCount":4,"mCount":3,"m30Count":0,"totalPop":7,"appliedRaise":1593},{"step":"13","bSalary":69841,"bCount":0,"mCount":1,"m30Count":0,"totalPop":1,"appliedRaise":1588},{"step":"14","bSalary":70967,"bCount":1,"mCount":2,"m30Count":0,"totalPop":3,"appliedRaise":1583},{"step":"15","bSalary":72093,"bCount":2,"mCount":0,"m30Count":0,"totalPop":2,"appliedRaise":1578},{"step":"16","bSalary":73219,"bCount":3,"mCount":0,"m30Count":0,"totalPop":3,"appliedRaise":1573},{"step":"17","bSalary":74345,"bCount":2,"mCount":2,"m30Count":0,"totalPop":4,"appliedRaise":1568},{"step":"18","bSalary":75471,"bCount":4,"mCount":0,"m30Count":0,"totalPop":4,"appliedRaise":1563},{"step":"19","bSalary":76597,"bCount":2,"mCount":2,"m30Count":0,"totalPop":4,"appliedRaise":1558},{"step":"20","bSalary":78079,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":1375},{"step":"21","bSalary":79550,"bCount":9,"mCount":10,"m30Count":4,"totalPop":23,"appliedRaise":1203}],"gridCost":8319172.75,"totalCost":8322972.75,"baseRaise":1200,"stepMovementCost":129812.75,"stepMovementPct":1.6226669305428951,"compactedThisYear":false},{"year":3,"matrix":[{"step":"1","bSalary":59482,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2295},{"step":"2","bSalary":60179,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2295},{"step":"3","bSalary":60876,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2295},{"step":"4","bSalary":61573,"bCount":12,"mCount":5,"m30Count":0,"totalPop":17,"appliedRaise":1866},{"step":"5","bSalary":62695,"bCount":13.25,"mCount":6,"m30Count":0,"totalPop":19.25,"appliedRaise":1862},{"step":"6","bSalary":63817,"bCount":9,"mCount":8,"m30Count":1,"totalPop":18,"appliedRaise":1858},{"step":"7","bSalary":64939,"bCount":2,"mCount":1,"m30Count":0,"totalPop":3,"appliedRaise":1854},{"step":"8","bSalary":66061,"bCount":0,"mCount":3,"m30Count":0,"totalPop":3,"appliedRaise":1850},{"step":"9","bSalary":67183,"bCount":1,"mCount":2,"m30Count":0,"totalPop":3,"appliedRaise":1846},{"step":"10","bSalary":68305,"bCount":4,"mCount":3,"m30Count":0,"totalPop":7,"appliedRaise":1842},{"step":"11","bSalary":69427,"bCount":2,"mCount":0,"m30Count":0,"totalPop":2,"appliedRaise":1838},{"step":"12","bSalary":70549,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":1834},{"step":"13","bSalary":71671,"bCount":4,"mCount":3,"m30Count":0,"totalPop":7,"appliedRaise":1830},{"step":"14","bSalary":72793,"bCount":0,"mCount":1,"m30Count":0,"totalPop":1,"appliedRaise":1826},{"step":"15","bSalary":73915,"bCount":1,"mCount":2,"m30Count":0,"totalPop":3,"appliedRaise":1822},{"step":"16","bSalary":75037,"bCount":2,"mCount":0,"m30Count":0,"totalPop":2,"appliedRaise":1818},{"step":"17","bSalary":76159,"bCount":3,"mCount":0,"m30Count":0,"totalPop":3,"appliedRaise":1814},{"step":"18","bSalary":77281,"bCount":2,"mCount":2,"m30Count":0,"totalPop":4,"appliedRaise":1810},{"step":"19","bSalary":78403,"bCount":4,"mCount":0,"m30Count":0,"totalPop":4,"appliedRaise":1806},{"step":"20","bSalary":79703,"bCount":2,"mCount":2,"m30Count":0,"totalPop":4,"appliedRaise":1624},{"step":"21","bSalary":80996,"bCount":9,"mCount":10,"m30Count":4,"totalPop":23,"appliedRaise":1446}],"gridCost":8651105.75,"totalCost":8654905.75,"baseRaise":1447,"stepMovementCost":114305.5,"stepMovementPct":1.3740007983365894,"compactedThisYear":false},{"year":4,"matrix":[{"step":"1","bSalary":61901,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2419},{"step":"2","bSalary":62598,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2419},{"step":"3","bSalary":63295,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2419},{"step":"4","bSalary":63992,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":2419},{"step":"5","bSalary":64689,"bCount":12,"mCount":5,"m30Count":0,"totalPop":17,"appliedRaise":1994},{"step":"6","bSalary":65806,"bCount":13.25,"mCount":6,"m30Count":0,"totalPop":19.25,"appliedRaise":1989},{"step":"7","bSalary":66923,"bCount":9,"mCount":8,"m30Count":1,"totalPop":18,"appliedRaise":1984},{"step":"8","bSalary":68040,"bCount":2,"mCount":1,"m30Count":0,"totalPop":3,"appliedRaise":1979},{"step":"9","bSalary":69157,"bCount":0,"mCount":3,"m30Count":0,"totalPop":3,"appliedRaise":1974},{"step":"10","bSalary":70274,"bCount":1,"mCount":2,"m30Count":0,"totalPop":3,"appliedRaise":1969},{"step":"11","bSalary":71391,"bCount":4,"mCount":3,"m30Count":0,"totalPop":7,"appliedRaise":1964},{"step":"12","bSalary":72508,"bCount":2,"mCount":0,"m30Count":0,"totalPop":2,"appliedRaise":1959},{"step":"13","bSalary":73625,"bCount":0,"mCount":0,"m30Count":0,"totalPop":0,"appliedRaise":1954},{"step":"14","bSalary":74742,"bCount":4,"mCount":3,"m30Count":0,"totalPop":7,"appliedRaise":1949},{"step":"15","bSalary":75859,"bCount":0,"mCount":1,"m30Count":0,"totalPop":1,"appliedRaise":1944},{"step":"16","bSalary":76976,"bCount":1,"mCount":2,"m30Count":0,"totalPop":3,"appliedRaise":1939},{"step":"17","bSalary":78093,"bCount":2,"mCount":0,"m30Count":0,"totalPop":2,"appliedRaise":1934},{"step":"18","bSalary":79210,"bCount":3,"mCount":0,"m30Count":0,"totalPop":3,"appliedRaise":1929},{"step":"19","bSalary":80327,"bCount":2,"mCount":2,"m30Count":0,"totalPop":4,"appliedRaise":1924},{"step":"20","bSalary":81444,"bCount":4,"mCount":0,"m30Count":0,"totalPop":4,"appliedRaise":1741},{"step":"21","bSalary":82561,"bCount":11,"mCount":12,"m30Count":4,"totalPop":27,"appliedRaise":1565}],"gridCost":8996286.5,"totalCost":9000086.5,"baseRaise":739,"stepMovementCost":113876.5,"stepMovementPct":1.3163230607832994,"compactedThisYear":false}];
+        
+        const MODELS = {
+          "Model A": [
+            {"year": 0, "matrix": [{"step": "1", "bSalary": 53237}, {"step": "2", "bSalary": 54372}, {"step": "3", "bSalary": 55507}, {"step": "4", "bSalary": 56642}, {"step": "5", "bSalary": 57777}, {"step": "6", "bSalary": 58912}, {"step": "7", "bSalary": 60047}, {"step": "8", "bSalary": 61183}, {"step": "9", "bSalary": 62318}, {"step": "10", "bSalary": 63453}, {"step": "11", "bSalary": 64588}, {"step": "12", "bSalary": 65723}, {"step": "13", "bSalary": 66858}, {"step": "14", "bSalary": 67993}, {"step": "15", "bSalary": 69128}, {"step": "16", "bSalary": 70263}, {"step": "17", "bSalary": 71398}, {"step": "18", "bSalary": 72534}, {"step": "19", "bSalary": 73669}, {"step": "20", "bSalary": 75517}, {"step": "21", "bSalary": 77330}]},
+            {"year": 1, "matrix": [{"step": "1", "bSalary": 55253}, {"step": "2", "bSalary": 55812}, {"step": "3", "bSalary": 56943}, {"step": "4", "bSalary": 58074}, {"step": "5", "bSalary": 59205}, {"step": "6", "bSalary": 60336}, {"step": "7", "bSalary": 61467}, {"step": "8", "bSalary": 62598}, {"step": "9", "bSalary": 63729}, {"step": "10", "bSalary": 64860}, {"step": "11", "bSalary": 65991}, {"step": "12", "bSalary": 67122}, {"step": "13", "bSalary": 68253}, {"step": "14", "bSalary": 69384}, {"step": "15", "bSalary": 70515}, {"step": "16", "bSalary": 71646}, {"step": "17", "bSalary": 72777}, {"step": "18", "bSalary": 73908}, {"step": "19", "bSalary": 75039}, {"step": "20", "bSalary": 76704}, {"step": "21", "bSalary": 78347}]},
+            {"year": 2, "matrix": [{"step": "1", "bSalary": 57463}, {"step": "2", "bSalary": 58022}, {"step": "3", "bSalary": 58581}, {"step": "4", "bSalary": 59707}, {"step": "5", "bSalary": 60833}, {"step": "6", "bSalary": 61959}, {"step": "7", "bSalary": 63085}, {"step": "8", "bSalary": 64211}, {"step": "9", "bSalary": 65337}, {"step": "10", "bSalary": 66463}, {"step": "11", "bSalary": 67589}, {"step": "12", "bSalary": 68715}, {"step": "13", "bSalary": 69841}, {"step": "14", "bSalary": 70967}, {"step": "15", "bSalary": 72093}, {"step": "16", "bSalary": 73219}, {"step": "17", "bSalary": 74345}, {"step": "18", "bSalary": 75471}, {"step": "19", "bSalary": 76597}, {"step": "20", "bSalary": 78079}, {"step": "21", "bSalary": 79550}]},
+            {"year": 3, "matrix": [{"step": "1", "bSalary": 59896}, {"step": "2", "bSalary": 60455}, {"step": "3", "bSalary": 61014}, {"step": "4", "bSalary": 61573}, {"step": "5", "bSalary": 62695}, {"step": "6", "bSalary": 63817}, {"step": "7", "bSalary": 64939}, {"step": "8", "bSalary": 66061}, {"step": "9", "bSalary": 67183}, {"step": "10", "bSalary": 68305}, {"step": "11", "bSalary": 69427}, {"step": "12", "bSalary": 70549}, {"step": "13", "bSalary": 71671}, {"step": "14", "bSalary": 72793}, {"step": "15", "bSalary": 73915}, {"step": "16", "bSalary": 75037}, {"step": "17", "bSalary": 76159}, {"step": "18", "bSalary": 77281}, {"step": "19", "bSalary": 78403}, {"step": "20", "bSalary": 79703}, {"step": "21", "bSalary": 80996}]},
+            {"year": 4, "matrix": [{"step": "1", "bSalary": 62453}, {"step": "2", "bSalary": 63012}, {"step": "3", "bSalary": 63571}, {"step": "4", "bSalary": 64130}, {"step": "5", "bSalary": 64689}, {"step": "6", "bSalary": 65806}, {"step": "7", "bSalary": 66923}, {"step": "8", "bSalary": 68040}, {"step": "9", "bSalary": 69157}, {"step": "10", "bSalary": 70274}, {"step": "11", "bSalary": 71391}, {"step": "12", "bSalary": 72508}, {"step": "13", "bSalary": 73625}, {"step": "14", "bSalary": 74742}, {"step": "15", "bSalary": 75859}, {"step": "16", "bSalary": 76976}, {"step": "17", "bSalary": 78093}, {"step": "18", "bSalary": 79210}, {"step": "19", "bSalary": 80327}, {"step": "20", "bSalary": 81444}, {"step": "21", "bSalary": 82561}]}
+          ],
+          "Model B": [
+            {"year": 0, "matrix": [{"step": "1", "bSalary": 53237}, {"step": "2", "bSalary": 54372}, {"step": "3", "bSalary": 55507}, {"step": "4", "bSalary": 56642}, {"step": "5", "bSalary": 57777}, {"step": "6", "bSalary": 58912}, {"step": "7", "bSalary": 60047}, {"step": "8", "bSalary": 61183}, {"step": "9", "bSalary": 62318}, {"step": "10", "bSalary": 63453}, {"step": "11", "bSalary": 64588}, {"step": "12", "bSalary": 65723}, {"step": "13", "bSalary": 66858}, {"step": "14", "bSalary": 67993}, {"step": "15", "bSalary": 69128}, {"step": "16", "bSalary": 70263}, {"step": "17", "bSalary": 71398}, {"step": "18", "bSalary": 72534}, {"step": "19", "bSalary": 73669}, {"step": "20", "bSalary": 75517}, {"step": "21", "bSalary": 77330}]},
+            {"year": 1, "matrix": [{"step": "1", "bSalary": 55189}, {"step": "2", "bSalary": 55760}, {"step": "3", "bSalary": 56895}, {"step": "4", "bSalary": 58030}, {"step": "5", "bSalary": 59165}, {"step": "6", "bSalary": 60300}, {"step": "7", "bSalary": 61435}, {"step": "8", "bSalary": 62570}, {"step": "9", "bSalary": 63705}, {"step": "10", "bSalary": 64840}, {"step": "11", "bSalary": 65975}, {"step": "12", "bSalary": 67110}, {"step": "13", "bSalary": 68245}, {"step": "14", "bSalary": 69380}, {"step": "15", "bSalary": 70515}, {"step": "16", "bSalary": 71650}, {"step": "17", "bSalary": 72785}, {"step": "18", "bSalary": 73920}, {"step": "19", "bSalary": 75055}, {"step": "20", "bSalary": 76801}, {"step": "21", "bSalary": 78559}]},
+            {"year": 2, "matrix": [{"step": "1", "bSalary": 57322}, {"step": "2", "bSalary": 57893}, {"step": "3", "bSalary": 58464}, {"step": "4", "bSalary": 59599}, {"step": "5", "bSalary": 60734}, {"step": "6", "bSalary": 61869}, {"step": "7", "bSalary": 63004}, {"step": "8", "bSalary": 64139}, {"step": "9", "bSalary": 65274}, {"step": "10", "bSalary": 66409}, {"step": "11", "bSalary": 67544}, {"step": "12", "bSalary": 68679}, {"step": "13", "bSalary": 69814}, {"step": "14", "bSalary": 70949}, {"step": "15", "bSalary": 72084}, {"step": "16", "bSalary": 73219}, {"step": "17", "bSalary": 74354}, {"step": "18", "bSalary": 75489}, {"step": "19", "bSalary": 76624}, {"step": "20", "bSalary": 78254}, {"step": "21", "bSalary": 79909}]},
+            {"year": 3, "matrix": [{"step": "1", "bSalary": 59692}, {"step": "2", "bSalary": 60263}, {"step": "3", "bSalary": 60834}, {"step": "4", "bSalary": 61405}, {"step": "5", "bSalary": 62540}, {"step": "6", "bSalary": 63675}, {"step": "7", "bSalary": 64810}, {"step": "8", "bSalary": 65945}, {"step": "9", "bSalary": 67080}, {"step": "10", "bSalary": 68215}, {"step": "11", "bSalary": 69350}, {"step": "12", "bSalary": 70485}, {"step": "13", "bSalary": 71620}, {"step": "14", "bSalary": 72755}, {"step": "15", "bSalary": 73890}, {"step": "16", "bSalary": 75025}, {"step": "17", "bSalary": 76160}, {"step": "18", "bSalary": 77295}, {"step": "19", "bSalary": 78430}, {"step": "20", "bSalary": 79923}, {"step": "21", "bSalary": 81482}]},
+            {"year": 4, "matrix": [{"step": "1", "bSalary": 62175}, {"step": "2", "bSalary": 62746}, {"step": "3", "bSalary": 63317}, {"step": "4", "bSalary": 63888}, {"step": "5", "bSalary": 64459}, {"step": "6", "bSalary": 65594}, {"step": "7", "bSalary": 66729}, {"step": "8", "bSalary": 67864}, {"step": "9", "bSalary": 68999}, {"step": "10", "bSalary": 70134}, {"step": "11", "bSalary": 71269}, {"step": "12", "bSalary": 72404}, {"step": "13", "bSalary": 73539}, {"step": "14", "bSalary": 74674}, {"step": "15", "bSalary": 75809}, {"step": "16", "bSalary": 76944}, {"step": "17", "bSalary": 78079}, {"step": "18", "bSalary": 79214}, {"step": "19", "bSalary": 80349}, {"step": "20", "bSalary": 81699}, {"step": "21", "bSalary": 83138}]}
+          ]
+        };
+
+        const SPED_CASELOAD = {
+            "none": { label: "None / Not Applicable", amount: 0 },
+            "1-15": { label: "1 to 15 Students (+$200)", amount: 200 },
+            "16-30": { label: "16 to 30 Students (+$300)", amount: 300 },
+            "31-45": { label: "31 to 45 Students (+$400)", amount: 400 },
+            "46+": { label: "46+ Students (+$500)", amount: 500 }
+        };
+
+        const EPED_BANDS = {
+            "A": [5020, 5020, 5170, 5325, 5484],
+            "B": [3263, 3263, 3412, 3515, 3619],
+            "C": [2912, 2912, 2999, 3089, 3181],
+            "D": [1857, 1857, 1913, 1970, 2029],
+            "E": [1155, 1155, 1189, 1225, 1261],
+            "F": [1004, 1004, 1034, 1065, 1097],
+            "G": [853, 853, 879, 905, 932],
+            "H": [552, 552, 569, 586, 603]
+        };
+
+        const EPED_POSITIONS = [
+            { name: "Marching Band: Director", band: "A" },
+            { name: "Yearbook Advisor (CHS)", band: "B" },
+            { name: "Musical: Director", band: "C" },
+            { name: "Mock Trial Advisor (CHS)", band: "C" },
+            { name: "Dept. & Grade Level Heads", band: "C" },
+            { name: "Band Director (CHS & SCMS)", band: "D" },
+            { name: "Chorus Director (CHS & SCMS)", band: "D" },
+            { name: "Marching Band: Assistant Director", band: "D" },
+            { name: "Musical: Music Director", band: "D" },
+            { name: "Musical: Box Office Manager", band: "E" },
+            { name: "National Honor Society (CHS)", band: "E" },
+            { name: "Prom Advisor (CHS)", band: "E" },
+            { name: "Student Council (CHS)", band: "E" },
+            { name: "Student Council (SCMS)", band: "E" },
+            { name: "Yearbook Advisor (SCMS)", band: "E" },
+            { name: "Archery Club Advisor (SCMS)", band: "F" },
+            { name: "Bowling Club Advisor (CHS)", band: "F" },
+            { name: "Class Advisor: Senior", band: "F" },
+            { name: "Drama Club (SCMS)", band: "F" },
+            { name: "Foreign Language Club (CHS)", band: "F" },
+            { name: "Marching Band: Staff Assistant", band: "F" },
+            { name: "Musical: Production Assistant", band: "F" },
+            { name: "Ski Club Advisor (CHS)", band: "F" },
+            { name: "Ski Club Advisor (SCMS)", band: "F" },
+            { name: "Student Council (MES)", band: "F" },
+            { name: "Business Club Advisor (CHS)", band: "G" },
+            { name: "Class Advisor: Freshman", band: "G" },
+            { name: "Class Advisor: Junior", band: "G" },
+            { name: "Class Advisor: Sophomore", band: "G" },
+            { name: "Future Teachers Club (CHS)", band: "G" },
+            { name: "Mentor Teachers", band: "G" },
+            { name: "Yearbook Advisor (MES)", band: "G" },
+            { name: "Yearbook Advisor (SCE)", band: "G" },
+            { name: "Envirothon Advisor (CHS)", band: "H" },
+            { name: "Envirothon Advisor (SCMS)", band: "H" },
+            { name: "National Junior Honor Society (SCMS)", band: "H" },
+            { name: "SADD Advisor (CHS)", band: "H" },
+            { name: "Student Broadcast Club Advisor (CHS)", band: "H" },
+            { name: "Student Broadcast Club Advisor (SCMS)", band: "H" },
+            { name: "Technology Liaison (CHS)", band: "H" },
+            { name: "Technology Liaison (MES)", band: "H" },
+            { name: "Technology Liaison (SCE)", band: "H" },
+            { name: "Technology Liaison (SCMS)", band: "H" }
+        ];
 
         const MemberPortal = () => {
-          const [userStep, setUserStep] = useState(MODEL_OUTPUT[0].matrix[0].step);
+          const [activeModel, setActiveModel] = useState("Model A");
+          const [userStep, setUserStep] = useState(MODELS["Model A"][0].matrix[0].step);
           const [userLane, setUserLane] = useState('b');
           const [insurance, setInsurance] = useState('single');
+          const [caseload, setCaseload] = useState('none');
+          const [selectedEped, setSelectedEped] = useState([]);
 
           const memberTrajectory = useMemo(() => {
-            let trajectory = [];
-            let aggregateNet = 0;
+              let trajectory = [];
+              let aggregateNet = 0;
+              let currentStepsFromTop = 0;
+              
+              const currentModelData = MODELS[activeModel];
+              const year0Matrix = currentModelData[0].matrix;
+              const initialIndex = year0Matrix.findIndex(r => r.step == userStep);
+              
+              if (initialIndex !== -1) currentStepsFromTop = year0Matrix.length - 1 - initialIndex;
 
-            let currentStepsFromTop = 0;
-            const year0Matrix = MODEL_OUTPUT[0].matrix;
-            const initialIndex = year0Matrix.findIndex(r => r.step == userStep);
-            if (initialIndex !== -1) currentStepsFromTop = year0Matrix.length - 1 - initialIndex;
+              currentModelData.forEach((proj, y) => {
+                  if (y > 0) currentStepsFromTop = Math.max(0, currentStepsFromTop - 1);
+                  let activeRow = proj.matrix[proj.matrix.length - 1 - currentStepsFromTop];
+                  if (!activeRow) return;
 
-            MODEL_OUTPUT.forEach((proj, y) => {
-              if (y > 0) currentStepsFromTop = Math.max(0, currentStepsFromTop - 1);
-              let activeRow = proj.matrix[proj.matrix.length - 1 - currentStepsFromTop];
-              if (!activeRow) return;
+                  let baseGross = Number(activeRow.bSalary) || 0;
+                  if (userLane === 'm') baseGross += LANE_DIFF;
+                  if (userLane === 'm30') baseGross += (LANE_DIFF * 2);
 
-              let gross = Number(activeRow.bSalary) || 0;
-              if (userLane === 'm') gross += LANE_DIFF;
-              if (userLane === 'm30') gross += (LANE_DIFF * 2);
+                  let epedAmount = 0;
+                  selectedEped.forEach(posName => {
+                      const epedData = EPED_POSITIONS.find(p => p.name === posName);
+                      if (epedData) epedAmount += EPED_BANDS[epedData.band][y];
+                  });
 
-              const safeMonthIndex = Math.min(y, (MONTHLY_HEALTHCARE[insurance]?.length - 1) || 0);
-              const annualHcCost = insurance === 'none' ? 0 : (MONTHLY_HEALTHCARE[insurance][safeMonthIndex] * 12);
-              const net = gross - annualHcCost;
+                  let caseloadAmount = SPED_CASELOAD[caseload].amount;
+                  let gross = baseGross + epedAmount + caseloadAmount;
 
-              if (y > 0) aggregateNet += net;
+                  const safeMonthIndex = Math.min(y, (MONTHLY_HEALTHCARE[insurance]?.length - 1) || 0);
+                  const annualHcCost = insurance === 'none' ? 0 : (MONTHLY_HEALTHCARE[insurance][safeMonthIndex] * 12);
+                  const net = gross - annualHcCost;
 
-              trajectory.push({
-                year: y,
-                stepLabel: activeRow.step,
-                gross,
-                annualHcCost,
-                net
+                  if (y > 0) aggregateNet += net;
+
+                  trajectory.push({
+                      year: y,
+                      stepLabel: activeRow.step,
+                      baseGross,
+                      extraPayTotal: epedAmount + caseloadAmount,
+                      gross,
+                      annualHcCost,
+                      net
+                  });
               });
-            });
 
-            return { trajectory, aggregateNet };
-          }, [userStep, userLane, insurance]);
+              return { trajectory, aggregateNet };
+          }, [userStep, userLane, insurance, activeModel, selectedEped, caseload]);
 
           const totalGrowth = memberTrajectory.trajectory[memberTrajectory.trajectory.length - 1].net - memberTrajectory.trajectory[0].net;
 
@@ -76,13 +173,33 @@
 
                 <div class="px-6 mt-6 space-y-4">
                     <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Proposed Model</label>
+                        <div class="flex p-1 bg-slate-900 border border-slate-700 rounded-xl mb-4">
+                            {Object.keys(MODELS).map(modelName => (
+                                <button 
+                                    key={modelName}
+                                    onClick={() => setActiveModel(modelName)}
+                                    class={`flex-1 py-3 text-sm font-bold rounded-lg transition ${
+                                        activeModel === modelName 
+                                        ? 'bg-blue-600 text-white shadow-md' 
+                                        : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {modelName}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Current Base Step</label>
                         <select value={userStep} onChange={(e) => setUserStep(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
-                            {MODEL_OUTPUT[0].matrix.map(m => (
+                            {MODELS[activeModel][0].matrix.map(m => (
                             <option key={m.step} value={m.step}>{"Step " + m.step}</option>
                             ))}
                         </select>
                     </div>
+                    
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Current Column / Track</label>
                         <select value={userLane} onChange={(e) => setUserLane(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
@@ -91,12 +208,45 @@
                             <option value="m30">Masters + 30 (M+30)</option>
                         </select>
                     </div>
+                    
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Healthcare Election</label>
                         <select value={insurance} onChange={(e) => setInsurance(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
                             <option value="single">Single Plan</option>
                             <option value="nonSingle">Non-Single Plan (Family/Couple)</option>
                             <option value="none">Opt-Out / No District Healthcare</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Caseload / Student Count</label>
+                        <select value={caseload} onChange={(e) => setCaseload(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                            {Object.entries(SPED_CASELOAD).map(([key, data]) => (
+                                <option key={key} value={key}>{data.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Extra Duty Positions (EPED)</label>
+                        {selectedEped.length > 0 && (
+                            <div class="mb-3 space-y-2">
+                                {selectedEped.map(pos => {
+                                    const epedData = EPED_POSITIONS.find(p => p.name === pos);
+                                    return (
+                                        <div key={pos} class="flex justify-between items-center bg-slate-800 border border-slate-700 px-3 py-2 rounded-lg text-sm text-slate-200">
+                                            <span class="truncate pr-2">{pos} <span class="text-xs text-slate-400 ml-1">(Cat {epedData.band})</span></span>
+                                            <button onClick={() => setSelectedEped(selectedEped.filter(p => p !== pos))} class="text-red-400 hover:text-red-300 font-bold p-1 text-lg leading-none">&times;</button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        <select value="" onChange={(e) => { if(e.target.value) setSelectedEped([...selectedEped, e.target.value]) }} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                            <option value="">+ Add an Extra Duty Position...</option>
+                            {EPED_POSITIONS.filter(p => !selectedEped.includes(p.name)).map(p => (
+                                <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
                         </select>
                     </div>
                 </div>
@@ -139,11 +289,17 @@
                                 </div>
                             </div>
 
-                            <div class="flex justify-between items-center pt-3 border-t border-slate-800/80">
+                            <div class="flex justify-between items-center pt-3 border-t border-slate-800/80 mt-2">
                                 <div class="text-xs text-slate-400">
-                                    <span class="text-slate-500 block mb-0.5">Gross Salary</span>
-                                    <span class="font-mono font-semibold">{"$" + Math.round(t.gross).toLocaleString()}</span>
+                                    <span class="text-slate-500 block mb-0.5">Base Salary</span>
+                                    <span class="font-mono font-semibold">{"$" + Math.round(t.baseGross).toLocaleString()}</span>
                                 </div>
+                                { t.extraPayTotal > 0 && (
+                                    <div class="text-xs text-center text-slate-400">
+                                        <span class="text-slate-500 block mb-0.5">Extra Pay</span>
+                                        <span class="font-mono text-emerald-400 font-medium">{"+$" + Math.round(t.extraPayTotal).toLocaleString()}</span>
+                                    </div>
+                                )}
                                 <div class="text-xs text-right text-slate-400">
                                     <span class="text-slate-500 block mb-0.5">Annual Health Ins.</span>
                                     <span class="font-mono text-slate-400 font-medium">{"-$" + Math.round(t.annualHcCost).toLocaleString()}</span>
