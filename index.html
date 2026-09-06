@@ -56,7 +56,7 @@
             "F": [1004, 1004, 1034, 1065, 1097],
             "G": [853, 853, 879, 905, 932],
             "H": [552, 552, 569, 586, 603],
-            "ZERO": [0, 0, 0, 0, 0] // Department Heads locked to $0
+            "ZERO": [0, 0, 0, 0, 0]
         };
 
         const EPED_POSITIONS = [
@@ -111,7 +111,6 @@
           const [userLane, setUserLane] = useState('b');
           const [insurance, setInsurance] = useState('single');
           const [caseload, setCaseload] = useState('none');
-          // selectedEped stores objects like { name: "...", split: false }
           const [selectedEped, setSelectedEped] = useState([]);
 
           const memberTrajectory = useMemo(() => {
@@ -186,7 +185,7 @@
               if (!selectedEped.some(item => item.name === posName)) {
                   setSelectedEped([...selectedEped, { name: posName, split: false }]);
               }
-              e.target.value = ""; // reset dropdown
+              e.target.value = "";
           };
 
           const handleToggleSplit = (posName) => {
@@ -346,7 +345,7 @@
                     </div>
                 </div>
 
-                {/* Highlights Card (Excludes Stipends for Base Contract Focus) */}
+                {/* Highlights Card */}
                 <div class="px-6 mt-8">
                     <div class="bg-emerald-950/30 border border-emerald-900/40 rounded-2xl p-6 text-center shadow-xl">
                         <span class="block text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1">{"Base Contract Value (" + YEARS + " Years)"}</span>
@@ -365,7 +364,7 @@
                     </div>
                 </div>
 
-                {/* Year by Year Breakdown */}
+                {/* Year by Year Breakdown (Bigger Fonts) */}
                 <div class="px-6 mt-8 space-y-4">
                     <h3 class="text-sm font-bold text-white border-b border-slate-800 pb-2 ml-1 tracking-wide">Year-by-Year Breakdown</h3>
 
@@ -373,31 +372,31 @@
                         <div key={idx} class={"p-5 rounded-xl border " + (idx === 0 ? "bg-slate-900/40 border-slate-800 border-dashed" : "bg-slate-900 border-slate-700 shadow-lg")}>
                             <div class="flex justify-between items-end mb-3">
                                 <div>
-                                    <div class={"text-sm font-black " + (idx === 0 ? "text-slate-400" : "text-blue-400")}>
+                                    <div class={"text-base font-black " + (idx === 0 ? "text-slate-300" : "text-blue-400")}>
                                         {idx === 0 ? "Current Pay (Baseline)" : "Contract Year " + idx}
                                     </div>
                                     <div class="text-xs text-slate-400 font-semibold mt-0.5">{"Assumed Level: Step " + t.stepLabel}</div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Net Pay</div>
-                                    <div class={"text-xl font-black font-mono " + (idx === 0 ? "text-slate-200" : "text-white")}>
+                                    <div class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Net Pay</div>
+                                    <div class={"text-2xl font-black font-mono " + (idx === 0 ? "text-slate-100" : "text-white")}>
                                         {"$" + Math.round(t.net).toLocaleString()}
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800/80 mt-2 text-xs">
+                            <div class="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800/80 mt-3 text-sm">
                                 <div>
-                                    <span class="text-slate-400 block mb-0.5 font-medium">Base Salary</span>
-                                    <span class="font-mono font-bold text-slate-200">{"$" + Math.round(t.baseGross).toLocaleString()}</span>
+                                    <span class="text-slate-400 block mb-0.5 text-xs font-medium">Base Salary</span>
+                                    <span class="font-mono font-bold text-slate-100 text-base">{"$" + Math.round(t.baseGross).toLocaleString()}</span>
                                 </div>
                                 <div class="text-center">
-                                    <span class="text-slate-400 block mb-0.5 font-medium">Extra Pay</span>
-                                    <span class="font-mono font-bold text-emerald-400">{t.extraPayTotal > 0 ? "+$" + Math.round(t.extraPayTotal).toLocaleString() : "$0"}</span>
+                                    <span class="text-slate-400 block mb-0.5 text-xs font-medium">Extra Pay</span>
+                                    <span class="font-mono font-bold text-emerald-400 text-base">{t.extraPayTotal > 0 ? "+$" + Math.round(t.extraPayTotal).toLocaleString() : "$0"}</span>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-slate-400 block mb-0.5 font-medium">Health Ins.</span>
-                                    <span class="font-mono font-bold text-slate-400">{"-$" + Math.round(t.annualHcCost).toLocaleString()}</span>
+                                    <span class="text-slate-400 block mb-0.5 text-xs font-medium">Health Ins.</span>
+                                    <span class="font-mono font-bold text-slate-400 text-base">{"-$" + Math.round(t.annualHcCost).toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
