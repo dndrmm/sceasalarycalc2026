@@ -10,7 +10,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; }
-        select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em; }
+        select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.25em; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen antialiased">
@@ -40,11 +40,11 @@
         };
 
         const SPED_CASELOAD = {
-            "none": { label: "None / Not Applicable", amount: 0 },
-            "1-15": { label: "1 to 15 Students (+$200)", amount: 200 },
-            "16-30": { label: "16 to 30 Students (+$300)", amount: 300 },
-            "31-45": { label: "31 to 45 Students (+$400)", amount: 400 },
-            "46+": { label: "46+ Students (+$500)", amount: 500 }
+            "none": { label: "None / N/A", amount: 0 },
+            "1-15": { label: "1-15 (+$200)", amount: 200 },
+            "16-30": { label: "16-30 (+$300)", amount: 300 },
+            "31-45": { label: "31-45 (+$400)", amount: 400 },
+            "46+": { label: "46+ (+$500)", amount: 500 }
         };
 
         const EPED_BANDS = {
@@ -115,6 +115,7 @@
           const memberTrajectory = useMemo(() => {
               let trajectory = [];
               let aggregateNet = 0;
+              let aggregateBaseNet = 0;
               let currentStepsFromTop = 0;
               
               const currentModelData = MODELS[activeModel];
@@ -139,42 +140,54 @@
                   });
 
                   let caseloadAmount = SPED_CASELOAD[caseload].amount;
-                  let gross = baseGross + epedAmount + caseloadAmount;
+                  let totalExtra = epedAmount + caseloadAmount;
+                  
+                  let gross = baseGross + totalExtra;
 
                   const safeMonthIndex = Math.min(y, (MONTHLY_HEALTHCARE[insurance]?.length - 1) || 0);
                   const annualHcCost = insurance === 'none' ? 0 : (MONTHLY_HEALTHCARE[insurance][safeMonthIndex] * 12);
-                  const net = gross - annualHcCost;
+                  
+                  const baseNet = baseGross - annualHcCost;
+                  const totalNet = gross - annualHcCost;
 
-                  if (y > 0) aggregateNet += net;
+                  if (y > 0) {
+                      aggregateNet += totalNet;
+                      aggregateBaseNet += baseNet;
+                  }
 
                   trajectory.push({
                       year: y,
                       stepLabel: activeRow.step,
                       baseGross,
-                      extraPayTotal: epedAmount + caseloadAmount,
+                      extraPayTotal: totalExtra,
                       gross,
                       annualHcCost,
-                      net
+                      net: totalNet
                   });
               });
 
-              return { trajectory, aggregateNet };
+              return { trajectory, aggregateNet, aggregateBaseNet };
           }, [userStep, userLane, insurance, activeModel, selectedEped, caseload]);
 
-          const totalGrowth = memberTrajectory.trajectory[memberTrajectory.trajectory.length - 1].net - memberTrajectory.trajectory[0].net;
+          // Highlights use base contract calculations only (excluding stipends)
+          const baseTrajectory = memberTrajectory.trajectory;
+          const baselineYear0Net = baseTrajectory[0].net;
+          const finalYearNet = baseTrajectory[baseTrajectory.length - 1].net;
+          const totalGrowth = finalYearNet - baselineYear0Net;
 
           return (
-            <div class="max-w-md mx-auto min-h-screen bg-slate-950 pb-12">
-                <div class="bg-slate-900 border-b border-slate-800 px-6 pt-10 pb-8 shadow-2xl rounded-b-3xl">
+            <div class="max-w-md mx-auto min-h-screen bg-slate-950 pb-16">
+                <div class="bg-slate-900 border-b border-slate-800 px-6 pt-8 pb-6 shadow-2xl rounded-b-3xl">
                     <h1 class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Contract Proposal</h1>
                     <h2 class="text-2xl font-black text-white leading-tight">Your Pay Estimator</h2>
-                    <p class="text-sm text-slate-400 mt-2">{"See exactly how the proposed " + YEARS + "-year agreement increases your salary."}</p>
+                    <p class="text-sm text-slate-400 mt-1.5">{"See how the proposed " + YEARS + "-year agreement impacts your income."}</p>
                 </div>
 
                 <div class="px-6 mt-6 space-y-4">
+                    {/* Model Selector */}
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Proposed Model</label>
-                        <div class="flex p-1 bg-slate-900 border border-slate-700 rounded-xl mb-4">
+                        <div class="flex p-1 bg-slate-900 border border-slate-800 rounded-xl">
                             {Object.keys(MODELS).map(modelName => (
                                 <button 
                                     key={modelName}
@@ -191,59 +204,105 @@
                         </div>
                     </div>
                     
+                    {/* Current Base Step */}
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Current Base Step</label>
-                        <select value={userStep} onChange={(e) => setUserStep(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                        <select value={userStep} onChange={(e) => setUserStep(e.target.value)} class="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3.5 text-base font-semibold shadow-inner outline-none focus:border-blue-500 transition">
                             {MODELS[activeModel][0].matrix.map(m => (
                             <option key={m.step} value={m.step}>{"Step " + m.step}</option>
                             ))}
                         </select>
                     </div>
                     
+                    {/* Column / Track (Pills) */}
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Current Column / Track</label>
-                        <select value={userLane} onChange={(e) => setUserLane(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
-                            <option value="b">Bachelors (B)</option>
-                            <option value="m">Masters (M)</option>
-                            <option value="m30">Masters + 30 (M+30)</option>
-                        </select>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Column / Track</label>
+                        <div class="grid grid-cols-3 gap-2 bg-slate-900 p-1 border border-slate-800 rounded-xl">
+                            {[
+                                { id: 'b', label: 'Bachelors' },
+                                { id: 'm', label: 'Masters' },
+                                { id: 'm30', label: 'M + 30' }
+                            ].map(lane => (
+                                <button
+                                    key={lane.id}
+                                    type="button"
+                                    onClick={() => setUserLane(lane.id)}
+                                    class={`py-2.5 text-xs font-bold rounded-lg transition ${
+                                        userLane === lane.id 
+                                        ? 'bg-slate-700 text-white shadow' 
+                                        : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {lane.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     
+                    {/* Healthcare Election (Pills) */}
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Healthcare Election</label>
-                        <select value={insurance} onChange={(e) => setInsurance(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
-                            <option value="single">Single Plan</option>
-                            <option value="nonSingle">Non-Single Plan (Family/Couple)</option>
-                            <option value="none">Opt-Out / No District Healthcare</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Caseload / Student Count</label>
-                        <select value={caseload} onChange={(e) => setCaseload(e.target.value)} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
-                            {Object.entries(SPED_CASELOAD).map(([key, data]) => (
-                                <option key={key} value={key}>{data.label}</option>
+                        <div class="grid grid-cols-3 gap-2 bg-slate-900 p-1 border border-slate-800 rounded-xl">
+                            {[
+                                { id: 'single', label: 'Single' },
+                                { id: 'nonSingle', label: 'Non-Single' },
+                                { id: 'none', label: 'Opt-Out' }
+                            ].map(ins => (
+                                <button
+                                    key={ins.id}
+                                    type="button"
+                                    onClick={() => setInsurance(ins.id)}
+                                    class={`py-2.5 text-xs font-bold rounded-lg transition ${
+                                        insurance === ins.id 
+                                        ? 'bg-slate-700 text-white shadow' 
+                                        : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {ins.label}
+                                </button>
                             ))}
-                        </select>
+                        </div>
                     </div>
                     
+                    {/* Special Ed Caseload (Pills) */}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Special Ed. Caseload</label>
+                        <div class="grid grid-cols-5 gap-1.5 bg-slate-900 p-1 border border-slate-800 rounded-xl">
+                            {Object.entries(SPED_CASELOAD).map(([key, data]) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setCaseload(key)}
+                                    class={`py-2 text-[11px] font-bold rounded-lg transition truncate px-1 ${
+                                        caseload === key 
+                                        ? 'bg-blue-600 text-white shadow' 
+                                        : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {data.label.split(' ')[0]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Extra Duty Positions (EPED) */}
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Extra Duty Positions (EPED)</label>
                         {selectedEped.length > 0 && (
-                            <div class="mb-3 space-y-2">
+                            <div class="mb-2 space-y-1.5">
                                 {selectedEped.map(pos => {
                                     const epedData = EPED_POSITIONS.find(p => p.name === pos);
                                     return (
-                                        <div key={pos} class="flex justify-between items-center bg-slate-800 border border-slate-700 px-3 py-2 rounded-lg text-sm text-slate-200">
-                                            <span class="truncate pr-2">{pos} <span class="text-xs text-slate-400 ml-1">(Cat {epedData.band})</span></span>
-                                            <button onClick={() => setSelectedEped(selectedEped.filter(p => p !== pos))} class="text-red-400 hover:text-red-300 font-bold p-1 text-lg leading-none">&times;</button>
+                                        <div key={pos} class="flex justify-between items-center bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-xs text-slate-200">
+                                            <span class="truncate pr-2 font-medium">{pos} <span class="text-[10px] text-slate-500">(Cat {epedData.band})</span></span>
+                                            <button onClick={() => setSelectedEped(selectedEped.filter(p => p !== pos))} class="text-red-400 hover:text-red-300 font-bold px-1.5 text-base">&times;</button>
                                         </div>
                                     );
                                 })}
                             </div>
                         )}
-                        <select value="" onChange={(e) => { if(e.target.value) setSelectedEped([...selectedEped, e.target.value]) }} class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 text-base font-semibold shadow-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
-                            <option value="">+ Add an Extra Duty Position...</option>
+                        <select value="" onChange={(e) => { if(e.target.value) setSelectedEped([...selectedEped, e.target.value]) }} class="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3.5 text-sm font-semibold shadow-inner outline-none focus:border-blue-500 transition">
+                            <option value="">+ Add Extra Duty Position...</option>
                             {EPED_POSITIONS.filter(p => !selectedEped.includes(p.name)).map(p => (
                                 <option key={p.name} value={p.name}>{p.name}</option>
                             ))}
@@ -251,58 +310,58 @@
                     </div>
                 </div>
 
+                {/* Highlights Card (Excludes Stipends for Base Contract Focus) */}
                 <div class="px-6 mt-8">
-                    <div class="bg-emerald-950/40 border border-emerald-900/50 rounded-2xl p-6 text-center shadow-[0_0_40px_-10px_rgba(16,185,129,0.2)]">
-                        <span class="block text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">{"Total " + YEARS + "-Year Contract Value"}</span>
-                        <div class="text-4xl font-black text-emerald-400 font-mono tracking-tight shadow-emerald-400/20 drop-shadow-lg">
-                            {"$" + Math.round(memberTrajectory.aggregateNet).toLocaleString()}
+                    <div class="bg-emerald-950/30 border border-emerald-900/40 rounded-2xl p-6 text-center shadow-xl">
+                        <span class="block text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1">{"Base Contract Value (" + YEARS + " Years)"}</span>
+                        <div class="text-4xl font-black text-emerald-300 font-mono tracking-tight drop-shadow">
+                            {"$" + Math.round(memberTrajectory.aggregateBaseNet).toLocaleString()}
                         </div>
-                        <span class="block text-[10px] text-slate-500 mt-2 font-medium">{"Combined net take-home pay over " + YEARS + " years."}</span>
+                        <span class="block text-[11px] text-slate-400 mt-1.5 font-medium">Combined net take-home base pay (excluding stipends).</span>
 
-                        <div class="mt-4 pt-4 border-t border-emerald-800/50">
-                            <span class="block text-xs font-bold text-emerald-500 uppercase tracking-widest mb-1">Final Year Net Increase</span>
+                        <div class="mt-4 pt-4 border-t border-emerald-900/40">
+                            <span class="block text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1">Final Year Base Net Increase</span>
                             <div class="text-2xl font-black text-white font-mono">
                                 {"+$" + Math.round(totalGrowth).toLocaleString()}
                             </div>
-                            <span class="block text-[10px] text-slate-500 mt-1 font-medium">{"How much more you will take home in Year " + YEARS + " vs. today."}</span>
+                            <span class="block text-[11px] text-slate-400 mt-1 font-medium">{"Extra annual take-home in Year " + YEARS + " vs. today."}</span>
                         </div>
                     </div>
                 </div>
 
+                {/* Year by Year Breakdown (Enhanced Mobile Font Sizes) */}
                 <div class="px-6 mt-8 space-y-4">
-                    <h3 class="text-sm font-bold text-white border-b border-slate-800 pb-2 ml-1">Year-by-Year Breakdown</h3>
+                    <h3 class="text-sm font-bold text-white border-b border-slate-800 pb-2 ml-1 tracking-wide">Year-by-Year Breakdown</h3>
 
                     {memberTrajectory.trajectory.map((t, idx) => (
-                        <div key={idx} class={"p-5 rounded-xl border " + (idx === 0 ? "bg-slate-900/50 border-slate-800 border-dashed" : "bg-slate-900 border-slate-700 shadow-md")}>
+                        <div key={idx} class={"p-5 rounded-xl border " + (idx === 0 ? "bg-slate-900/40 border-slate-800 border-dashed" : "bg-slate-900 border-slate-700 shadow-lg")}>
                             <div class="flex justify-between items-end mb-3">
                                 <div>
                                     <div class={"text-sm font-black " + (idx === 0 ? "text-slate-400" : "text-blue-400")}>
                                         {idx === 0 ? "Current Pay (Baseline)" : "Contract Year " + idx}
                                     </div>
-                                    <div class="text-xs text-slate-500 font-medium mt-0.5">{"Assumed Level: Step " + t.stepLabel}</div>
+                                    <div class="text-xs text-slate-400 font-semibold mt-0.5">{"Assumed Level: Step " + t.stepLabel}</div>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Net Pay</div>
-                                    <div class={"text-xl font-black font-mono " + (idx === 0 ? "text-slate-300" : "text-white")}>
+                                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Net Pay</div>
+                                    <div class={"text-xl font-black font-mono " + (idx === 0 ? "text-slate-200" : "text-white")}>
                                         {"$" + Math.round(t.net).toLocaleString()}
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="flex justify-between items-center pt-3 border-t border-slate-800/80 mt-2">
-                                <div class="text-xs text-slate-400">
-                                    <span class="text-slate-500 block mb-0.5">Base Salary</span>
-                                    <span class="font-mono font-semibold">{"$" + Math.round(t.baseGross).toLocaleString()}</span>
+                            <div class="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800/80 mt-2 text-xs">
+                                <div>
+                                    <span class="text-slate-400 block mb-0.5 font-medium">Base Salary</span>
+                                    <span class="font-mono font-bold text-slate-200">{"$" + Math.round(t.baseGross).toLocaleString()}</span>
                                 </div>
-                                { t.extraPayTotal > 0 && (
-                                    <div class="text-xs text-center text-slate-400">
-                                        <span class="text-slate-500 block mb-0.5">Extra Pay</span>
-                                        <span class="font-mono text-emerald-400 font-medium">{"+$" + Math.round(t.extraPayTotal).toLocaleString()}</span>
-                                    </div>
-                                )}
-                                <div class="text-xs text-right text-slate-400">
-                                    <span class="text-slate-500 block mb-0.5">Annual Health Ins.</span>
-                                    <span class="font-mono text-slate-400 font-medium">{"-$" + Math.round(t.annualHcCost).toLocaleString()}</span>
+                                <div class="text-center">
+                                    <span class="text-slate-400 block mb-0.5 font-medium">Extra Pay</span>
+                                    <span class="font-mono font-bold text-emerald-400">{t.extraPayTotal > 0 ? "+$" + Math.round(t.extraPayTotal).toLocaleString() : "$0"}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-slate-400 block mb-0.5 font-medium">Health Ins.</span>
+                                    <span class="font-mono font-bold text-slate-400">{"-$" + Math.round(t.annualHcCost).toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
@@ -310,7 +369,7 @@
                 </div>
 
                 <div class="text-center mt-10 px-6">
-                    <p class="text-[10px] text-slate-600 font-medium">Calculations are modeled estimates based on proposed matrix distribution rules and current step placements. Consult final printed TA for official figures.</p>
+                    <p class="text-[11px] text-slate-500 font-medium leading-relaxed">Calculations are modeled estimates based on proposed matrix distribution rules and current step placements. Consult final printed TA for official figures.</p>
                 </div>
 
             </div>
