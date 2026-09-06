@@ -55,7 +55,8 @@
             "E": [1155, 1155, 1189, 1225, 1261],
             "F": [1004, 1004, 1034, 1065, 1097],
             "G": [853, 853, 879, 905, 932],
-            "H": [552, 552, 569, 586, 603]
+            "H": [552, 552, 569, 586, 603],
+            "ZERO": [0, 0, 0, 0, 0] // Department Heads locked to $0
         };
 
         const EPED_POSITIONS = [
@@ -63,7 +64,7 @@
             { name: "Yearbook Advisor (CHS)", band: "B" },
             { name: "Musical: Director", band: "C" },
             { name: "Mock Trial Advisor (CHS)", band: "C" },
-            { name: "Dept. & Grade Level Heads", band: "C" },
+            { name: "Dept. & Grade Level Heads", band: "ZERO" },
             { name: "Band Director (CHS & SCMS)", band: "D" },
             { name: "Chorus Director (CHS & SCMS)", band: "D" },
             { name: "Marching Band: Assistant Director", band: "D" },
@@ -110,6 +111,7 @@
           const [userLane, setUserLane] = useState('b');
           const [insurance, setInsurance] = useState('single');
           const [caseload, setCaseload] = useState('none');
+          // selectedEped stores objects like { name: "...", split: false }
           const [selectedEped, setSelectedEped] = useState([]);
 
           const memberTrajectory = useMemo(() => {
@@ -134,9 +136,13 @@
                   if (userLane === 'm30') baseGross += (LANE_DIFF * 2);
 
                   let epedAmount = 0;
-                  selectedEped.forEach(posName => {
-                      const epedData = EPED_POSITIONS.find(p => p.name === posName);
-                      if (epedData) epedAmount += EPED_BANDS[epedData.band][y];
+                  selectedEped.forEach(item => {
+                      const epedData = EPED_POSITIONS.find(p => p.name === item.name);
+                      if (epedData) {
+                          let rate = EPED_BANDS[epedData.band][y];
+                          if (item.split) rate = rate / 2;
+                          epedAmount += rate;
+                      }
                   });
 
                   let caseloadAmount = SPED_CASELOAD[caseload].amount;
@@ -169,11 +175,25 @@
               return { trajectory, aggregateNet, aggregateBaseNet };
           }, [userStep, userLane, insurance, activeModel, selectedEped, caseload]);
 
-          // Highlights use base contract calculations only (excluding stipends)
           const baseTrajectory = memberTrajectory.trajectory;
           const baselineYear0Net = baseTrajectory[0].net;
           const finalYearNet = baseTrajectory[baseTrajectory.length - 1].net;
           const totalGrowth = finalYearNet - baselineYear0Net;
+
+          const handleAddEped = (e) => {
+              const posName = e.target.value;
+              if (!posName) return;
+              if (!selectedEped.some(item => item.name === posName)) {
+                  setSelectedEped([...selectedEped, { name: posName, split: false }]);
+              }
+              e.target.value = ""; // reset dropdown
+          };
+
+          const handleToggleSplit = (posName) => {
+              setSelectedEped(selectedEped.map(item => 
+                  item.name === posName ? { ...item, split: !item.split } : item
+              ));
+          };
 
           return (
             <div class="max-w-md mx-auto min-h-screen bg-slate-950 pb-16">
@@ -264,7 +284,7 @@
                         </div>
                     </div>
                     
-                    {/* Special Ed Caseload (Pills) */}
+                    {/* Special Ed. Caseload (Pills) */}
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Special Ed. Caseload</label>
                         <div class="grid grid-cols-5 gap-1.5 bg-slate-900 p-1 border border-slate-800 rounded-xl">
@@ -289,22 +309,38 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Extra Duty Positions (EPED)</label>
                         {selectedEped.length > 0 && (
-                            <div class="mb-2 space-y-1.5">
-                                {selectedEped.map(pos => {
-                                    const epedData = EPED_POSITIONS.find(p => p.name === pos);
+                            <div class="mb-2 space-y-2">
+                                {selectedEped.map(item => {
+                                    const epedData = EPED_POSITIONS.find(p => p.name === item.name);
                                     return (
-                                        <div key={pos} class="flex justify-between items-center bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-xs text-slate-200">
-                                            <span class="truncate pr-2 font-medium">{pos} <span class="text-[10px] text-slate-500">(Cat {epedData.band})</span></span>
-                                            <button onClick={() => setSelectedEped(selectedEped.filter(p => p !== pos))} class="text-red-400 hover:text-red-300 font-bold px-1.5 text-base">&times;</button>
+                                        <div key={item.name} class="flex justify-between items-center bg-slate-900 border border-slate-800 px-3 py-2.5 rounded-lg text-xs text-slate-200">
+                                            <div class="truncate pr-2">
+                                                <span class="font-medium">{item.name}</span>
+                                                <span class="text-[10px] text-slate-500 ml-1.5">(Cat {epedData.band === 'ZERO' ? 'C - Unfunded' : epedData.band})</span>
+                                            </div>
+                                            <div class="flex items-center space-x-3 shrink-0">
+                                                <label class="flex items-center space-x-1 cursor-pointer select-none text-[11px] text-slate-400 hover:text-white">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={item.split} 
+                                                        onChange={() => handleToggleSplit(item.name)} 
+                                                        class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0 w-3.5 h-3.5"
+                                                    />
+                                                    <span>Split (1/2)</span>
+                                                </label>
+                                                <button onClick={() => setSelectedEped(selectedEped.filter(p => p.name !== item.name))} class="text-red-400 hover:text-red-300 font-bold px-1 text-base leading-none">&times;</button>
+                                            </div>
                                         </div>
                                     );
                                 })}
                             </div>
                         )}
-                        <select value="" onChange={(e) => { if(e.target.value) setSelectedEped([...selectedEped, e.target.value]) }} class="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3.5 text-sm font-semibold shadow-inner outline-none focus:border-blue-500 transition">
+                        <select value="" onChange={handleAddEped} class="w-full bg-slate-900 border border-slate-800 text-white rounded-xl p-3.5 text-sm font-semibold shadow-inner outline-none focus:border-blue-500 transition">
                             <option value="">+ Add Extra Duty Position...</option>
-                            {EPED_POSITIONS.filter(p => !selectedEped.includes(p.name)).map(p => (
-                                <option key={p.name} value={p.name}>{p.name}</option>
+                            {EPED_POSITIONS.filter(p => !selectedEped.some(item => item.name === p.name)).map(p => (
+                                <option key={p.name} value={p.name}>
+                                    {p.name} {p.band === 'ZERO' ? '(Dept Head - $0)' : ''}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -329,7 +365,7 @@
                     </div>
                 </div>
 
-                {/* Year by Year Breakdown (Enhanced Mobile Font Sizes) */}
+                {/* Year by Year Breakdown */}
                 <div class="px-6 mt-8 space-y-4">
                     <h3 class="text-sm font-bold text-white border-b border-slate-800 pb-2 ml-1 tracking-wide">Year-by-Year Breakdown</h3>
 
