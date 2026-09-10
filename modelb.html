@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Contract Proposal Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.2em; }
+        .glass-panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(8px); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-blue-500/30">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const YEARS = 4;
+        const LANE_DIFF = 1000;
+        const MONTHLY_HEALTHCARE = {"single":[0,20,20,20,20,150,160,170,180],"nonSingle":[0,40,40,40,40,350,370,390,410]};
+        
+        const MODELS = {
+          "Model B": [
+            {"year": 0, "matrix": [{"step": "1", "bSalary": 53237}, {"step": "2", "bSalary": 54372}, {"step": "3", "bSalary": 55507}, {"step": "4", "bSalary": 56642}, {"step": "5", "bSalary": 57777}, {"step": "6", "bSalary": 58912}, {"step": "7", "bSalary": 60047}, {"step": "8", "bSalary": 61183}, {"step": "9", "bSalary": 62318}, {"step": "10", "bSalary": 63453}, {"step": "11", "bSalary": 64588}, {"step": "12", "bSalary": 65723}, {"step": "13", "bSalary": 66858}, {"step": "14", "bSalary": 67993}, {"step": "15", "bSalary": 69128}, {"step": "16", "bSalary": 70263}, {"step": "17", "bSalary": 71398}, {"step": "18", "bSalary": 72534}, {"step": "19", "bSalary": 73669}, {"step": "20", "bSalary": 75517}, {"step": "21", "bSalary": 77330}]},
+            {"year": 1, "matrix": [{"step": "1", "bSalary": 55023}, {"step": "2", "bSalary": 55800}, {"step": "3", "bSalary": 56935}, {"step": "4", "bSalary": 58070}, {"step": "5", "bSalary": 59205}, {"step": "6", "bSalary": 60340}, {"step": "7", "bSalary": 61475}, {"step": "8", "bSalary": 62610}, {"step": "9", "bSalary": 63745}, {"step": "10", "bSalary": 64880}, {"step": "11", "bSalary": 66015}, {"step": "12", "bSalary": 67150}, {"step": "13", "bSalary": 68285}, {"step": "14", "bSalary": 69420}, {"step": "15", "bSalary": 70555}, {"step": "16", "bSalary": 71690}, {"step": "17", "bSalary": 72825}, {"step": "18", "bSalary": 73960}, {"step": "19", "bSalary": 75095}, {"step": "20", "bSalary": 76695}, {"step": "21", "bSalary": 78331}]},
+            {"year": 2, "matrix": [{"step": "1", "bSalary": 57583}, {"step": "2", "bSalary": 58060}, {"step": "3", "bSalary": 58537}, {"step": "4", "bSalary": 59672}, {"step": "5", "bSalary": 60807}, {"step": "6", "bSalary": 61942}, {"step": "7", "bSalary": 63077}, {"step": "8", "bSalary": 64212}, {"step": "9", "bSalary": 65347}, {"step": "10", "bSalary": 66482}, {"step": "11", "bSalary": 67617}, {"step": "12", "bSalary": 68752}, {"step": "13", "bSalary": 69887}, {"step": "14", "bSalary": 71022}, {"step": "15", "bSalary": 72157}, {"step": "16", "bSalary": 73292}, {"step": "17", "bSalary": 74427}, {"step": "18", "bSalary": 75562}, {"step": "19", "bSalary": 76697}, {"step": "20", "bSalary": 78096}, {"step": "21", "bSalary": 79595}]},
+            {"year": 3, "matrix": [{"step": "1", "bSalary": 60113}, {"step": "2", "bSalary": 60580}, {"step": "3", "bSalary": 61047}, {"step": "4", "bSalary": 61514}, {"step": "5", "bSalary": 62649}, {"step": "6", "bSalary": 63784}, {"step": "7", "bSalary": 64919}, {"step": "8", "bSalary": 66054}, {"step": "9", "bSalary": 67189}, {"step": "10", "bSalary": 68324}, {"step": "11", "bSalary": 69459}, {"step": "12", "bSalary": 70594}, {"step": "13", "bSalary": 71729}, {"step": "14", "bSalary": 72864}, {"step": "15", "bSalary": 73999}, {"step": "16", "bSalary": 75134}, {"step": "17", "bSalary": 76269}, {"step": "18", "bSalary": 77404}, {"step": "19", "bSalary": 78539}, {"step": "20", "bSalary": 79674}, {"step": "21", "bSalary": 81073}]},
+            {"year": 4, "matrix": [{"step": "1", "bSalary": 62752}, {"step": "2", "bSalary": 63209}, {"step": "3", "bSalary": 63666}, {"step": "4", "bSalary": 64123}, {"step": "5", "bSalary": 64580}, {"step": "6", "bSalary": 65715}, {"step": "7", "bSalary": 66850}, {"step": "8", "bSalary": 67985}, {"step": "9", "bSalary": 69120}, {"step": "10", "bSalary": 70255}, {"step": "11", "bSalary": 71390}, {"step": "12", "bSalary": 72525}, {"step": "13", "bSalary": 73660}, {"step": "14", "bSalary": 74795}, {"step": "15", "bSalary": 75930}, {"step": "16", "bSalary": 77065}, {"step": "17", "bSalary": 78200}, {"step": "18", "bSalary": 79335}, {"step": "19", "bSalary": 80470}, {"step": "20", "bSalary": 81605}, {"step": "21", "bSalary": 82740}]}
+          ]
+        };
+
+        const SPED_CASELOAD = {
+            "none": { label: "None / N/A", amount: 0 },
+            "1-15": { label: "1-15 (+$200)", amount: 200 },
+            "16-30": { label: "16-30 (+$300)", amount: 300 },
+            "31-45": { label: "31-45 (+$400)", amount: 400 },
+            "46+": { label: "46+ (+$500)", amount: 500 }
+        };
+
+        const EPED_BANDS = {
+            "A": [5020, 5020, 5170, 5325, 5484],
+            "B": [3263, 3263, 3412, 3515, 3619],
+            "C": [2912, 2912, 2999, 3089, 3181],
+            "D": [1857, 1857, 1913, 1970, 2029],
+            "E": [1155, 1155, 1189, 1225, 1261],
+            "F": [1004, 1004, 1034, 1065, 1097],
+            "G": [853, 853, 879, 905, 932],
+            "H": [552, 552, 569, 586, 603],
+            "0": [0, 0, 0, 0, 0]
+        };
+
+        const EPED_POSITIONS = [
+            { name: "Marching Band: Director", band: "A" },
+            { name: "Yearbook Advisor (CHS)", band: "B" },
+            { name: "Musical: Director", band: "C" },
+            { name: "Mock Trial Advisor (CHS)", band: "C" },
+            { name: "Dept. & Grade Level Heads", band: "0" },
+            { name: "Band Director (CHS & SCMS)", band: "D" },
+            { name: "Chorus Director (CHS & SCMS)", band: "D" },
+            { name: "Marching Band: Assistant Director", band: "D" },
+            { name: "Musical: Music Director", band: "D" },
+            { name: "Musical: Box Office Manager", band: "E" },
+            { name: "National Honor Society (CHS)", band: "E" },
+            { name: "Prom Advisor (CHS)", band: "E" },
+            { name: "Student Council (CHS)", band: "E" },
+            { name: "Student Council (SCMS)", band: "E" },
+            { name: "Yearbook Advisor (SCMS)", band: "E" },
+            { name: "Archery Club Advisor (SCMS)", band: "F" },
+            { name: "Bowling Club Advisor (CHS)", band: "F" },
+            { name: "Class Advisor: Senior", band: "F" },
+            { name: "Drama Club (SCMS)", band: "F" },
+            { name: "Foreign Language Club (CHS)", band: "F" },
+            { name: "Marching Band: Staff Assistant", band: "F" },
+            { name: "Musical: Production Assistant", band: "F" },
+            { name: "Ski Club Advisor (CHS)", band: "F" },
+            { name: "Ski Club Advisor (SCMS)", band: "F" },
+            { name: "Student Council (MES)", band: "F" },
+            { name: "Business Club Advisor (CHS)", band: "G" },
+            { name: "Class Advisor: Freshman", band: "G" },
+            { name: "Class Advisor: Junior", band: "G" },
+            { name: "Class Advisor: Sophomore", band: "G" },
+            { name: "Future Teachers Club (CHS)", band: "G" },
+            { name: "Mentor Teachers", band: "G" },
+            { name: "Yearbook Advisor (MES)", band: "G" },
+            { name: "Yearbook Advisor (SCE)", band: "G" },
+            { name: "Envirothon Advisor (CHS)", band: "H" },
+            { name: "Envirothon Advisor (SCMS)", band: "H" },
+            { name: "National Junior Honor Society (SCMS)", band: "H" },
+            { name: "SADD Advisor (CHS)", band: "H" },
+            { name: "Student Broadcast Club Advisor (CHS)", band: "H" },
+            { name: "Student Broadcast Club Advisor (SCMS)", band: "H" },
+            { name: "Technology Liaison (CHS)", band: "H" },
+            { name: "Technology Liaison (MES)", band: "H" },
+            { name: "Technology Liaison (SCE)", band: "H" },
+            { name: "Technology Liaison (SCMS)", band: "H" }
+        ];
+        
+        const MemberPortal = () => {
+          const [userStep, setUserStep] = useState(MODELS["Model B"][0].matrix[0].step);
+          const [userLane, setUserLane] = useState('b');
+          const [insurance, setInsurance] = useState('single');
+          const [caseload, setCaseload] = useState('none');
+          const [selectedEped, setSelectedEped] = useState([]);
+
+          const memberTrajectory = useMemo(() => {
+              let trajectory = [];
+              let aggregateNet = 0;
+              let aggregateBaseNet = 0;
+              let currentStepsFromTop = 0;
+              
+              const currentModelData = MODELS["Model B"];
+
+              const year0Matrix = currentModelData[0].matrix;
+              const initialIndex = year0Matrix.findIndex(r => r.step == userStep);
+              
+              if (initialIndex !== -1) currentStepsFromTop = year0Matrix.length - 1 - initialIndex;
+
+              currentModelData.forEach((proj, y) => {
+                  if (y > 0) currentStepsFromTop = Math.max(0, currentStepsFromTop - 1);
+                  let activeRow = proj.matrix[proj.matrix.length - 1 - currentStepsFromTop];
+                  if (!activeRow) return;
+
+                  let baseGross = Number(activeRow.bSalary) || 0;
+                  
+                  if (userLane === 'm') baseGross += LANE_DIFF;
+                  if (userLane === 'm30') baseGross += (LANE_DIFF * 2);
+
+                  let epedAmount = 0;
+                  selectedEped.forEach(pos => {
+                      const epedData = EPED_POSITIONS.find(p => p.name === pos.name);
+                      if (epedData) {
+                          let amount = EPED_BANDS[epedData.band][y];
+                          if (pos.split) amount /= 2;
+                          epedAmount += amount;
+                      }
+                  });
+
+                  let caseloadAmount = SPED_CASELOAD[caseload].amount;
+                  let totalExtra = epedAmount + caseloadAmount;
+                  
+                  let gross = baseGross + totalExtra;
+
+                  const safeMonthIndex = Math.min(y, (MONTHLY_HEALTHCARE[insurance]?.length - 1) || 0);
+                  const annualHcCost = insurance === 'none' ? 0 : (MONTHLY_HEALTHCARE[insurance][safeMonthIndex] * 12);
+                  
+                  const baseNet = baseGross - annualHcCost;
+                  const totalNet = gross - annualHcCost;
+
+                  if (y > 0) {
+                      aggregateNet += totalNet;
+                      aggregateBaseNet += baseNet;
+                  }
+
+                  trajectory.push({
+                      year: y,
+                      stepLabel: activeRow.step,
+                      baseGross,
+                      extraPayTotal: totalExtra,
+                      gross,
+                      annualHcCost,
+                      net: totalNet
+                  });
+              });
+
+              return { trajectory, aggregateNet, aggregateBaseNet };
+          }, [userStep, userLane, insurance, selectedEped, caseload]);
+
+          const baseTrajectory = memberTrajectory.trajectory;
+          const baselineYear0Net = baseTrajectory[0].net;
+          const finalYearNet = baseTrajectory[baseTrajectory.length - 1].net;
+          const totalGrowth = finalYearNet - baselineYear0Net;
+
+          return (
+            <div class="max-w-md mx-auto min-h-screen bg-[#0f172a] pb-16 font-sans">
+                {/* Header Block */}
+                <div class="bg-gradient-to-b from-slate-900 to-slate-900/90 border-b border-slate-800/60 px-6 pt-10 pb-8 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.5)] rounded-b-[2rem]">
+                    <h1 class="text-[10px] font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 uppercase tracking-[0.2em] mb-1.5">Contract Proposal</h1>
+                    <h2 class="text-3xl font-black text-white tracking-tight">Pay Estimator</h2>
+                    <p class="text-xs text-slate-400 mt-2 leading-relaxed">See how the proposed {YEARS}-year agreement impacts your income directly.</p>
+                </div>
+
+                <div class="px-6 mt-6 space-y-5">
+                    
+                    {/* Current Base Step */}
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Current Base Step</label>
+                        <select value={userStep} onChange={(e) => setUserStep(e.target.value)} class="w-full bg-slate-800/50 border border-slate-700 text-slate-100 rounded-xl p-3.5 text-sm font-bold shadow-inner outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all">
+                            {MODELS["Model B"][0].matrix.map(m => (
+                            <option key={m.step} value={m.step}>{"Step " + m.step}</option>
+                            ))}
+                        </select>
+                    </div>
+                    
+                    {/* Column / Track (Pills) */}
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Column / Track</label>
+                        <div class="grid grid-cols-3 gap-2 bg-slate-900/60 p-1 border border-slate-800 rounded-xl shadow-inner">
+                            {[
+                                { id: 'b', label: 'Bachelors' },
+                                { id: 'm', label: 'Masters' },
+                                { id: 'm30', label: 'M + 30' }
+                            ].map(lane => (
+                                <button
+                                    key={lane.id}
+                                    type="button"
+                                    onClick={() => setUserLane(lane.id)}
+                                    class={`py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
+                                        userLane === lane.id 
+                                        ? 'bg-slate-700 text-white shadow' 
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                                >
+                                    {lane.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Healthcare Election (Pills) */}
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Healthcare Election</label>
+                        <div class="grid grid-cols-3 gap-2 bg-slate-900/60 p-1 border border-slate-800 rounded-xl shadow-inner">
+                            {[
+                                { id: 'single', label: 'Single' },
+                                { id: 'nonSingle', label: 'Non-Single' },
+                                { id: 'none', label: 'Opt-Out' }
+                            ].map(ins => (
+                                <button
+                                    key={ins.id}
+                                    type="button"
+                                    onClick={() => setInsurance(ins.id)}
+                                    class={`py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
+                                        insurance === ins.id 
+                                        ? 'bg-slate-700 text-white shadow' 
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                                >
+                                    {ins.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Special Ed Caseload (Pills) */}
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Special Ed. Caseload</label>
+                        <div class="grid grid-cols-5 gap-1.5 bg-slate-900/60 p-1 border border-slate-800 rounded-xl shadow-inner">
+                            {Object.entries(SPED_CASELOAD).map(([key, data]) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setCaseload(key)}
+                                    class={`py-2.5 text-[10px] font-bold rounded-lg transition-all duration-200 truncate px-1 ${
+                                        caseload === key 
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-900/20' 
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                                    }`}
+                                >
+                                    {data.label.split(' ')[0]}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Extra Duty Positions (EPED) */}
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Extra Duty Positions (EPED)</label>
+                        {selectedEped.length > 0 && (
+                            <div class="mb-3 space-y-2">
+                                {selectedEped.map((pos, idx) => {
+                                    const epedData = EPED_POSITIONS.find(p => p.name === pos.name);
+                                    return (
+                                        <div key={pos.name} class="flex justify-between items-center bg-slate-800/40 border border-slate-700/60 px-3 py-2.5 rounded-lg shadow-sm">
+                                            <div class="flex-1 pr-2 min-w-0">
+                                                <div class="text-xs font-bold text-slate-200 truncate">{pos.name}</div>
+                                                <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-0.5 font-semibold">Category {epedData.band}</div>
+                                            </div>
+                                            <div class="flex items-center space-x-2 shrink-0">
+                                                <button 
+                                                    onClick={() => {
+                                                        const newEped = [...selectedEped];
+                                                        newEped[idx].split = !newEped[idx].split;
+                                                        setSelectedEped(newEped);
+                                                    }}
+                                                    class={`px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 border ${
+                                                        pos.split 
+                                                        ? 'bg-blue-600 text-white border-blue-500 shadow-[0_0_10px_rgba(37,99,235,0.3)]' 
+                                                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                                                    }`}
+                                                >
+                                                    50% Split
+                                                </button>
+                                                <button onClick={() => setSelectedEped(selectedEped.filter(p => p.name !== pos.name))} class="text-slate-500 hover:text-red-400 font-bold px-1 text-lg leading-none transition-colors">&times;</button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        <select 
+                            value="" 
+                            onChange={(e) => { 
+                                if(e.target.value) setSelectedEped([...selectedEped, { name: e.target.value, split: false }]) 
+                            }} 
+                            class="w-full bg-slate-800/50 border border-slate-700 text-slate-300 rounded-xl p-3.5 text-sm font-semibold shadow-inner outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all"
+                        >
+                            <option value="">+ Add Extra Duty Position...</option>
+                            {EPED_POSITIONS.filter(p => !selectedEped.some(s => s.name === p.name)).map(p => (
+                                <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Highlights Card (Excludes Stipends for Base Contract Focus) */}
+                <div class="px-6 mt-10">
+                    <div class="relative bg-emerald-950/20 border border-emerald-900/30 rounded-2xl p-6 text-center shadow-lg overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none"></div>
+                        <div class="relative">
+                            <span class="block text-[10px] font-bold text-emerald-400/80 uppercase tracking-[0.15em] mb-1.5">{"Base Contract Value (" + YEARS + " Years)"}</span>
+                            <div class="text-[40px] leading-none font-black text-emerald-300 font-mono tracking-tight drop-shadow-md">
+                                {"$" + Math.round(memberTrajectory.aggregateBaseNet).toLocaleString()}
+                            </div>
+                            <span class="block text-[10px] text-slate-400 mt-2 font-medium">Combined net take-home base pay (excluding stipends).</span>
+
+                            <div class="mt-5 pt-5 border-t border-emerald-900/30">
+                                <span class="block text-[9px] font-bold text-emerald-400/60 uppercase tracking-widest mb-1">Final Year Base Net Increase</span>
+                                <div class="text-2xl font-black text-white font-mono drop-shadow">
+                                    {"+$" + Math.round(totalGrowth).toLocaleString()}
+                                </div>
+                                <span class="block text-[9.5px] text-slate-400 mt-1 font-medium">{"Extra annual take-home in Year " + YEARS + " vs. today."}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Year by Year Breakdown */}
+                <div class="px-6 mt-10 space-y-4">
+                    <h3 class="text-[11px] font-bold text-slate-300 uppercase tracking-[0.15em] border-b border-slate-800 pb-2 mb-4 ml-1">Year-by-Year Breakdown</h3>
+
+                    {memberTrajectory.trajectory.map((t, idx) => (
+                        <div key={idx} class={"p-5 rounded-xl border transition-all duration-300 " + (idx === 0 ? "bg-slate-900/30 border-slate-800 border-dashed" : "glass-panel border-slate-700/60 shadow-lg shadow-black/20")}>
+                            <div class="flex justify-between items-end mb-4">
+                                <div>
+                                    <div class={"text-xs font-black uppercase tracking-wider mb-0.5 " + (idx === 0 ? "text-slate-400" : "text-blue-400")}>
+                                        {idx === 0 ? "Current Pay (Baseline)" : "Contract Year " + idx}
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-bold tracking-wide">{"Assumed Level: Step " + t.stepLabel}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1">Total Net Pay</div>
+                                    <div class={"text-2xl font-black font-mono leading-none " + (idx === 0 ? "text-slate-200" : "text-white")}>
+                                        {"$" + Math.round(t.net).toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-2 pt-3.5 border-t border-slate-800/80 mt-2 text-xs">
+                                <div>
+                                    <span class="text-slate-500 block mb-1 text-[9px] font-bold uppercase tracking-widest">Base Salary</span>
+                                    <span class="font-mono font-bold text-slate-200 text-sm">{"$" + Math.round(t.baseGross).toLocaleString()}</span>
+                                </div>
+                                <div class="text-center">
+                                    <span class="text-slate-500 block mb-1 text-[9px] font-bold uppercase tracking-widest">Extra Pay</span>
+                                    <span class="font-mono font-bold text-emerald-400 text-sm">{t.extraPayTotal > 0 ? "+$" + Math.round(t.extraPayTotal).toLocaleString() : "$0"}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-slate-500 block mb-1 text-[9px] font-bold uppercase tracking-widest">Health Ins.</span>
+                                    <span class="font-mono font-bold text-slate-400 text-sm">{"-$" + Math.round(t.annualHcCost).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div class="text-center mt-12 mb-6 px-6">
+                    <p class="text-[10px] text-slate-600 font-medium leading-relaxed max-w-[250px] mx-auto">
+                        Calculations are modeled estimates based on proposed matrix distribution rules. Consult final printed TA for official figures.
+                    </p>
+                </div>
+
+            </div>
+          );
+        };
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<MemberPortal />);
+    </script>
+</body>
+</html>
