@@ -80,9 +80,14 @@
         ];
 
         const AnalyticsBargainingEngine = () => {
+          const [baseYear, setBaseYear] = useState(() => {
+            const d = new Date();
+            return d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1;
+          });
+
           const [years, setYears] = useState(4);
 
-          const [annualIncreases, setAnnualIncreases] = useState([3.99, 3.99, 3.99, 3.99, 3.99, 3.99, 3.99, 3.99]);
+          const [annualIncreases, setAnnualIncreases] = useState(Array(25).fill(3.99));
           const [superMaxAmount, setSuperMaxAmount] = useState(3800);
 
           const [stepCompression, setStepCompression] = useState(50);
@@ -102,6 +107,9 @@
           
           const [autoCleanGaps, setAutoCleanGaps] = useState(true);
 
+          const [lockDemographics, setLockDemographics] = useState(false);
+          const [lockYear, setLockYear] = useState(8);
+
           const [isConfiguring, setIsConfiguring] = useState(false);
           const [matrix, setMatrix] = useState(DefaultMatrix);
 
@@ -113,9 +121,15 @@
           const actualCompYear = Math.min(compactionYear, years);
 
           const [monthlyHealthcare, setMonthlyHealthcare] = useState({
-            single: [0, 20, 20, 20, 20, 20, 20, 20, 20],
-            nonSingle: [0, 40, 40, 40, 40, 40, 40, 40, 40]
+            single: [0, ...Array(25).fill(20)],
+            nonSingle: [0, ...Array(25).fill(40)]
           });
+
+          const getSchoolYear = (offset) => {
+            const start = baseYear + offset;
+            const end = (start + 1).toString().slice(-2);
+            return `${start}-${end}`;
+          };
 
           const formatCount = (num) => {
             const n = Number(num);
@@ -128,7 +142,26 @@
             }, 0);
           };
 
-          const generateModelOutput = (initialGrid, increaseArray, superMaxVal, comp, totalCutsAllowed, applySmoothing, targetGap, applySmartBoost, cosmeticGap, applyBoostPhaseIn, startGap, compYear, applyAutoClean) => {
+          const generateModelOutput = (
+            initialGrid, 
+            increaseArray, 
+            superMaxVal, 
+            comp, 
+            totalCutsAllowed, 
+            applySmoothing, 
+            targetGap, 
+            applySmartBoost, 
+            cosmeticGap, 
+            applyBoostPhaseIn, 
+            startGap, 
+            contractYears, 
+            compYear, 
+            applyAutoClean, 
+            applyPreserveJumps, 
+            retentionPct, 
+            applyLockDemographics, 
+            lockYearTarget
+          ) => {
             let results = [];
             let current = [...initialGrid.map(m => ({...m}))];
             const initialPayroll = calculatePayroll(current);
@@ -137,7 +170,7 @@
                 baseRaise: 0, stepMovementCost: 0, stepMovementPct: 0, oldMatrixStepPct: 0, compactedThisYear: false
             });
 
-            for (let y = 1; y <= years; y++) {
+            for (let y = 1; y <= contractYears; y++) {
               const previousPayroll = calculatePayroll(current);
               const targetBudget = (previousPayroll * (1 + ((Number(increaseArray[y - 1]) || 0) / 100)));
 
@@ -184,19 +217,19 @@
                   
                   let specificTargetGap = targetGap;
                   
-                  if (preserveJumps) {
+                  if (applyPreserveJumps) {
                       const initialCurrent = initialGrid.find(o => o.step === nextLayout[i].step);
                       const initialBelow = initialGrid.find(o => o.step === nextLayout[i-1].step);
                       if (initialCurrent && initialBelow) {
                           const originalGap = Number(initialCurrent.bSalary) - Number(initialBelow.bSalary);
                           if (originalGap > targetGap) {
-                              specificTargetGap = targetGap + ((originalGap - targetGap) * (jumpRetention / 100));
+                              specificTargetGap = targetGap + ((originalGap - targetGap) * (retentionPct / 100));
                           }
                       }
                   }
 
                   const gapDiff = specificTargetGap - currentGap;
-                  const annualCorrection = Math.round(gapDiff / (years - y + 1));
+                  const annualCorrection = Math.round(gapDiff / (contractYears - y + 1));
                   corrections[i] = corrections[i-1] + annualCorrection;
                 }
 
@@ -243,7 +276,6 @@
                 });
               }
 
-              // --- TOP STEP PLUG RUNS BEFORE AUTO-CLEAN ---
               let preCleanGridCost = calculatePayroll(finalized);
               let preCleanRemainder = targetBudget - preCleanGridCost;
               let topStepRow = finalized[finalized.length - 1];
@@ -254,7 +286,6 @@
                   topStepRow.appliedRaise += topStepAdjustment;
               }
 
-              // --- AUTO-CLEAN OVERRIDES TOP STEP PLUG ---
               if (applyAutoClean && finalized.length > 1) {
                 let gaps = [];
                 for(let i = 0; i < finalized.length - 1; i++){
@@ -277,16 +308,15 @@
                 }
               }
 
-              // --- YEAR-OVER-YEAR PHASED SMART BOOST ---
               if (applySmartBoost) {
                 let firstPopIdx = finalized.findIndex(r => r.totalPop > 0);
                 if (firstPopIdx === -1) firstPopIdx = finalized.length - 1;
                 
                 let currentYearGap = cosmeticGap;
-                if (applyBoostPhaseIn && years > 1) {
-                  const fraction = (y - 1) / (years - 1); // 0 in Y1, 1 in final year
+                if (applyBoostPhaseIn && contractYears > 1) {
+                  const fraction = (y - 1) / (contractYears - 1);
                   currentYearGap = Math.round(startGap - (startGap - cosmeticGap) * fraction);
-                } else if (applyBoostPhaseIn && years === 1) {
+                } else if (applyBoostPhaseIn && contractYears === 1) {
                   currentYearGap = cosmeticGap;
                 }
                 
@@ -297,7 +327,19 @@
                 }
               }
 
-              // --- FINAL COST CALCULATIONS ---
+              // --- FREEZE HEADCOUNT DISTRIBUTION (STEADY STATE SIMULATION) ---
+              if (applyLockDemographics && y > lockYearTarget) {
+                let referenceGrid = lockYearTarget === 0 ? initialGrid : results[lockYearTarget].matrix;
+                finalized = finalized.map(r => {
+                    const refRow = referenceGrid.find(ref => ref.step === r.step);
+                    if (refRow) {
+                        return { ...r, bCount: refRow.bCount, mCount: refRow.mCount, m30Count: refRow.m30Count, totalPop: refRow.totalPop };
+                    } else {
+                        return { ...r, bCount: 0, mCount: 0, m30Count: 0, totalPop: 0 };
+                    }
+                });
+              }
+
               const basePopCostOnNewGrid = initialGrid.reduce((sum, r) => {
                 const newRow = finalized.find(f => f.step === r.step) || finalized[finalized.length - 1];
                 const base = Number(newRow.bSalary);
@@ -334,8 +376,27 @@
           };
 
           const modelOutput = useMemo(() => {
-            return generateModelOutput(matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, phaseInBoost, boostStartGap, years, actualCompYear, autoCleanGaps, preserveJumps, jumpRetention);
-          }, [matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, phaseInBoost, boostStartGap, years, actualCompYear, autoCleanGaps, preserveJumps, jumpRetention]);
+            return generateModelOutput(
+                matrix, 
+                annualIncreases, 
+                superMaxAmount, 
+                stepCompression, 
+                targetCompactionCuts, 
+                useSmoothing, 
+                targetUniformGap, 
+                useSmartBoost, 
+                cosmeticGapOverride, 
+                phaseInBoost, 
+                boostStartGap, 
+                years, 
+                actualCompYear, 
+                autoCleanGaps, 
+                preserveJumps, 
+                jumpRetention, 
+                lockDemographics, 
+                lockYear
+            );
+          }, [matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, phaseInBoost, boostStartGap, years, actualCompYear, autoCleanGaps, preserveJumps, jumpRetention, lockDemographics, lockYear]);
 
           const memberNetSummary = useMemo(() => {
             let trajectory = [];
@@ -376,8 +437,10 @@
                 const stepsToTop = proj.matrix.length - 1 - i;
                 const toTopLabel = stepsToTop === 0 ? "TOP" : stepsToTop;
                 const raise = yearIndex === 0 ? "N/A" : Math.round(row.appliedRaise);
+                
+                const yearLabel = yearIndex === 0 ? "Base" : `Y${yearIndex} (${getSchoolYear(yearIndex)})`;
 
-                csvContent += `${yearIndex},${toTopLabel},${row.step},${row.bCount},${row.mCount},${row.m30Count},${Math.round(row.bSalary)},${Math.round(row.bSalary + LANE_DIFF)},${Math.round(row.bSalary + LANE_DIFF * 2)},${raise},${increment ? Math.round(increment) : ""}\n`;
+                csvContent += `${yearLabel},${toTopLabel},${row.step},${row.bCount},${row.mCount},${row.m30Count},${Math.round(row.bSalary)},${Math.round(row.bSalary + LANE_DIFF)},${Math.round(row.bSalary + LANE_DIFF * 2)},${raise},${increment ? Math.round(increment) : ""}\n`;
               });
               csvContent += "\n";
             });
@@ -415,9 +478,16 @@
         const { useState, useMemo } = React;
 
         const YEARS = ${years};
+        const BASE_YEAR = ${baseYear};
         const LANE_DIFF = 1000;
         const MONTHLY_HEALTHCARE = ${JSON.stringify(monthlyHealthcare)};
         const MODEL_OUTPUT = ${JSON.stringify(modelOutput)};
+        
+        const getSchoolYear = (offset) => {
+            const start = BASE_YEAR + offset;
+            const end = (start + 1).toString().slice(-2);
+            return start + "-" + end;
+        };
 
         const MemberPortal = () => {
           const [userStep, setUserStep] = useState(MODEL_OUTPUT[0].matrix[0].step);
@@ -510,7 +580,7 @@
                             <div class="text-2xl font-black text-white font-mono">
                                 {"+$" + Math.round(totalGrowth).toLocaleString()}
                             </div>
-                            <span class="block text-[10px] text-slate-500 mt-1 font-medium">{"How much more you will take home in Year " + YEARS + " vs. today."}</span>
+                            <span class="block text-[10px] text-slate-500 mt-1 font-medium">{"How much more you will take home in " + getSchoolYear(YEARS) + " vs. today."}</span>
                         </div>
                     </div>
                 </div>
@@ -523,7 +593,7 @@
                             <div class="flex justify-between items-end mb-3">
                                 <div>
                                     <div class={"text-sm font-black " + (idx === 0 ? "text-slate-400" : "text-blue-400")}>
-                                        {idx === 0 ? "Current Pay (Baseline)" : "Contract Year " + idx}
+                                        {idx === 0 ? "Current Pay (Baseline)" : "Year " + idx + " (" + getSchoolYear(idx) + ")"}
                                     </div>
                                     <div class="text-xs text-slate-500 font-medium mt-0.5">{"Assumed Level: Step " + t.stepLabel}</div>
                                 </div>
@@ -668,12 +738,25 @@
                     <h2 class="text-base font-bold text-slate-200 border-b border-slate-800 pb-2">Healthcare Deductions</h2>
                     <div>
                       <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Single Coverage ($/mo)</h3>
-                      <div class="flex flex-wrap gap-2">
+                      <div class="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto pr-2">
                         {monthlyHealthcare.single.slice(0, years + 1).map((v, y) => (
                           <div key={y} class="w-16">
                             <span class="text-[10px] text-slate-500 block text-center mb-0.5">Y{y}</span>
                             <input type="number" value={v} onChange={(e) => {
                               const updated = [...monthlyHealthcare.single]; updated[y] = Number(e.target.value); setMonthlyHealthcare(prev => ({ ...prev, single: updated }));
+                            }} class="w-full bg-slate-950 border border-slate-800 rounded p-1 text-xs text-center text-slate-300"/>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2 mt-4">Non-Single Coverage ($/mo)</h3>
+                      <div class="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto pr-2">
+                        {monthlyHealthcare.nonSingle.slice(0, years + 1).map((v, y) => (
+                          <div key={y} class="w-16">
+                            <span class="text-[10px] text-slate-500 block text-center mb-0.5">Y{y}</span>
+                            <input type="number" value={v} onChange={(e) => {
+                              const updated = [...monthlyHealthcare.nonSingle]; updated[y] = Number(e.target.value); setMonthlyHealthcare(prev => ({ ...prev, nonSingle: updated }));
                             }} class="w-full bg-slate-950 border border-slate-800 rounded p-1 text-xs text-center text-slate-300"/>
                           </div>
                         ))}
@@ -687,15 +770,21 @@
                   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 bg-slate-900 border border-slate-800 rounded-xl shadow-xl no-print">
 
                     <div class="space-y-4">
-                      <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Contract Length</label>
-                        <select value={years} onChange={(e) => setYears(Number(e.target.value))} class="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded p-1.5 text-sm outline-none focus:border-blue-500">
-                          {[2,3,4,5,6,7,8].map(y => <option key={y} value={y}>{y} Years</option>)}
-                        </select>
+                      <div class="flex gap-4">
+                        <div class="w-1/2">
+                          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Contract Length</label>
+                          <select value={years} onChange={(e) => setYears(Number(e.target.value))} class="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded p-1.5 text-sm outline-none focus:border-blue-500">
+                            {[...Array(24)].map((_, i) => <option key={i+2} value={i+2}>{i+2} Years</option>)}
+                          </select>
+                        </div>
+                        <div class="w-1/2">
+                          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Base Sch. Year</label>
+                          <input type="number" value={baseYear} onChange={(e) => setBaseYear(Number(e.target.value))} class="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded p-1.5 text-sm outline-none focus:border-blue-500"/>
+                        </div>
                       </div>
                       <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Annual Raise Budget (%)</label>
-                        <div class="grid grid-cols-4 gap-1.5">
+                        <div class="grid grid-cols-4 sm:grid-cols-5 gap-1.5 max-h-[160px] overflow-y-auto pr-2">
                           {annualIncreases.slice(0, years).map((val, idx) => (
                             <div key={idx}>
                               <span class="text-[9px] text-slate-500 font-bold block mb-0.5">Y{idx+1}</span>
@@ -771,6 +860,24 @@
                           )}
                         </div>
                       </label>
+
+                      <label class="flex items-start gap-3 cursor-pointer p-2 rounded border border-slate-800 hover:bg-slate-800/50 transition">
+                        <input type="checkbox" checked={lockDemographics} onChange={(e) => setLockDemographics(e.target.checked)} class="w-5 h-5 accent-blue-500 mt-1" />
+                        <div class="w-full">
+                          <span class="text-sm font-bold text-white block">Freeze Headcount Distribution</span>
+                          {lockDemographics && (
+                            <div class="mt-2 flex items-center gap-2">
+                              <span class="text-[10px] text-slate-400 whitespace-nowrap">Stop movement after:</span>
+                              <select value={lockYear} onChange={(e) => setLockYear(Number(e.target.value))} class="w-full bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white">
+                                <option value={0}>Base Year (0)</option>
+                                {[...Array(years)].map((_, i) => <option key={i+1} value={i+1}>Year {i+1}</option>)}
+                              </select>
+                            </div>
+                          )}
+                          <span class="text-[9px] text-slate-500 leading-tight block mt-1">Allows staff to age normally until the selected year. After that, the distribution is frozen in place to simulate steady-state turnover, preventing step costs from artificially zeroing out.</span>
+                        </div>
+                      </label>
+
                     </div>
 
                     <div class="space-y-3 border-t lg:border-t-0 lg:border-r border-slate-800 pt-4 lg:pt-0 lg:pr-4 flex flex-col justify-between">
@@ -862,7 +969,7 @@
                           {memberNetSummary.trajectory.map((t, idx) => (
                             <div key={idx} class={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-2.5 rounded-lg border ${idx === 0 ? 'bg-slate-950 border-slate-800' : 'bg-slate-850/50 border-transparent'}`}>
                               <div class="whitespace-nowrap pr-2">
-                                <span class="text-xs font-bold text-blue-400 block sm:inline">{idx === 0 ? 'Current Baseline' : `Contract Year ${idx}`}</span>
+                                <span class="text-xs font-bold text-blue-400 block sm:inline">{idx === 0 ? 'Current Baseline' : `Year ${idx} (${getSchoolYear(idx)})`}</span>
                                 <div class="text-[10px] text-slate-400 font-medium">To Top: {t.displayLabel}</div>
                               </div>
                               <div class="text-left sm:text-right mt-1 sm:mt-0 flex-shrink-0">
@@ -882,11 +989,16 @@
                             <div>
                               <div class="flex items-center gap-2">
                                 <h3 class="font-black text-slate-200 text-sm print-text">
-                                  {idx === 0 ? "Baseline Distribution" : `Contract Year ${idx} (${annualIncreases[idx-1]}%)`}
+                                  {idx === 0 ? `Baseline Distribution (${getSchoolYear(0)})` : `Contract Year ${idx} — ${getSchoolYear(idx)} (${annualIncreases[idx-1]}%)`}
                                 </h3>
                                 {proj.compactedThisYear && (
                                   <span class="text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded no-print">
                                     Step(s) Removed (Compacted)
+                                  </span>
+                                )}
+                                {lockDemographics && idx > lockYear && (
+                                  <span class="text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded no-print">
+                                    Demographics Reset to Y{lockYear}
                                   </span>
                                 )}
                               </div>
