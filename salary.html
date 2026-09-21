@@ -93,7 +93,12 @@
           const [stepCompression, setStepCompression] = useState(50);
           const [useSmoothing, setUseSmoothing] = useState(true);
           const [targetUniformGap, setTargetUniformGap] = useState(1500);
+          const [targetGapYear, setTargetGapYear] = useState(4);
           
+          const [targetJumps, setTargetJumps] = useState(false);
+          const [jumpThreshold, setJumpThreshold] = useState(2000);
+          const [jumpShrinkAmount, setJumpShrinkAmount] = useState(300);
+
           const [preserveJumps, setPreserveJumps] = useState(true);
           const [jumpRetention, setJumpRetention] = useState(50);
 
@@ -109,6 +114,9 @@
 
           const [lockDemographics, setLockDemographics] = useState(false);
           const [lockYear, setLockYear] = useState(8);
+          
+          const [useRetirement, setUseRetirement] = useState(false);
+          const [retirementCount, setRetirementCount] = useState(3.5);
 
           const [isConfiguring, setIsConfiguring] = useState(false);
           const [matrix, setMatrix] = useState(DefaultMatrix);
@@ -119,6 +127,7 @@
 
           const LANE_DIFF = 1000;
           const actualCompYear = Math.min(compactionYear, years);
+          const actualTargetGapYear = Math.min(targetGapYear, years);
 
           const [monthlyHealthcare, setMonthlyHealthcare] = useState({
             single: [0, ...Array(25).fill(20)],
@@ -160,7 +169,13 @@
             applyPreserveJumps, 
             retentionPct, 
             applyLockDemographics, 
-            lockYearTarget
+            lockYearTarget,
+            applyRetirement,
+            retireCountTarget,
+            applyTargetJumps,
+            jumpThresh,
+            jumpShrink,
+            targetGapYr
           ) => {
             let results = [];
             let current = [...initialGrid.map(m => ({...m}))];
@@ -182,6 +197,34 @@
                 nextLayout[targetIndex].m30Count += Number(current[i].m30Count);
               }
               nextLayout.forEach(r => r.totalPop = Number(r.bCount) + Number(r.mCount) + Number(r.m30Count));
+
+              // --- BALANCED ATTRITION & RETIREMENT SIMULATION ---
+              if (applyRetirement && retireCountTarget > 0) {
+                let topStepIndex = nextLayout.length - 1;
+                let topRow = nextLayout[topStepIndex];
+                let bottomRow = nextLayout[0]; 
+
+                let actualRetiring = Math.min(topRow.totalPop, retireCountTarget);
+
+                if (topRow.totalPop > 0 && actualRetiring > 0) {
+                    let ratioB = topRow.bCount / topRow.totalPop;
+                    let ratioM = topRow.mCount / topRow.totalPop;
+                    let ratioM30 = topRow.m30Count / topRow.totalPop;
+
+                    let bRetiring = actualRetiring * ratioB;
+                    let mRetiring = actualRetiring * ratioM;
+                    let m30Retiring = actualRetiring * ratioM30;
+
+                    topRow.bCount = Math.max(0, topRow.bCount - bRetiring);
+                    topRow.mCount = Math.max(0, topRow.mCount - mRetiring);
+                    topRow.m30Count = Math.max(0, topRow.m30Count - m30Retiring);
+                    topRow.totalPop = Math.max(0, topRow.totalPop - actualRetiring);
+
+                    bottomRow.bCount += actualRetiring;
+                    bottomRow.totalPop += actualRetiring;
+                }
+              }
+              // --------------------------------------------
 
               let compactedThisYear = false;
               if (y === compYear) {
@@ -229,7 +272,10 @@
                   }
 
                   const gapDiff = specificTargetGap - currentGap;
-                  const annualCorrection = Math.round(gapDiff / (contractYears - y + 1));
+                  let yearsRemaining = targetGapYr - y + 1;
+                  if (yearsRemaining < 1) yearsRemaining = 1;
+
+                  const annualCorrection = Math.round(gapDiff / yearsRemaining);
                   corrections[i] = corrections[i-1] + annualCorrection;
                 }
 
@@ -249,6 +295,26 @@
                   return { ...row, bSalary: newBase, appliedRaise: cellRaise };
                 });
               } else {
+                
+                let jumpCost = 0;
+                let jumpCorrections = new Array(nextLayout.length).fill(0);
+                if (applyTargetJumps) {
+                    let currentCumulative = 0;
+                    for (let i = 1; i < nextLayout.length; i++) {
+                        const prevBase = Number(current.find(c => c.step === nextLayout[i-1].step)?.bSalary || 0);
+                        const currBase = Number(current.find(c => c.step === nextLayout[i].step)?.bSalary || 0);
+                        if ((currBase - prevBase) > jumpThresh) {
+                            currentCumulative -= jumpShrink; 
+                        }
+                        jumpCorrections[i] = currentCumulative;
+                    }
+                    const minJumpCorr = Math.min(...jumpCorrections);
+                    jumpCorrections = jumpCorrections.map(c => c - minJumpCorr);
+                    jumpCost = nextLayout.reduce((sum, r, idx) => sum + (jumpCorrections[idx] * r.totalPop), 0);
+                }
+
+                const adjustedLeftover = leftover - jumpCost;
+
                 let weightedIndexSum = 0;
                 let maxPopulatedIndex = 0;
                 nextLayout.forEach((r, idx) => {
@@ -258,18 +324,18 @@
                   }
                 });
                 const maxAllowedComp = totalHeadcount > 0 && maxPopulatedIndex > 0
-                  ? Math.max(0, (leftover - (500 * totalHeadcount)) / ((maxPopulatedIndex * totalHeadcount) - weightedIndexSum)) : comp;
+                  ? Math.max(0, (adjustedLeftover - (500 * totalHeadcount)) / ((maxPopulatedIndex * totalHeadcount) - weightedIndexSum)) : comp;
                 const safeComp = Math.round(maxAllowedComp > 0 ? Math.min(comp, maxAllowedComp) : 0);
-                const baseRaise = Math.round(totalHeadcount > 0 ? (leftover + (safeComp * weightedIndexSum)) / totalHeadcount : 0);
+                const baseRaise = Math.round(totalHeadcount > 0 ? (adjustedLeftover + (safeComp * weightedIndexSum)) / totalHeadcount : 0);
                 yearBaseRaise = baseRaise;
 
                 finalized = nextLayout.map((row, index) => {
                   const historicalMatch = current.find(oldRow => oldRow.step === row.step) || current[current.length - 1];
                   let cellRaise = 0;
                   if (row.totalPop > 0) {
-                    cellRaise = Math.max(500, baseRaise - (index * safeComp));
+                    cellRaise = Math.max(500, baseRaise - (index * safeComp) + jumpCorrections[index]);
                   } else {
-                    cellRaise = baseRaise - (index * safeComp);
+                    cellRaise = baseRaise - (index * safeComp) + jumpCorrections[index];
                   }
                   let newBase = Number(historicalMatch.bSalary) + cellRaise;
                   return { ...row, bSalary: newBase, appliedRaise: cellRaise };
@@ -327,7 +393,6 @@
                 }
               }
 
-              // --- FREEZE HEADCOUNT DISTRIBUTION (STEADY STATE SIMULATION) ---
               if (applyLockDemographics && y > lockYearTarget) {
                 let referenceGrid = lockYearTarget === 0 ? initialGrid : results[lockYearTarget].matrix;
                 finalized = finalized.map(r => {
@@ -394,9 +459,15 @@
                 preserveJumps, 
                 jumpRetention, 
                 lockDemographics, 
-                lockYear
+                lockYear,
+                useRetirement,
+                retirementCount,
+                targetJumps,
+                jumpThreshold,
+                jumpShrinkAmount,
+                actualTargetGapYear
             );
-          }, [matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, phaseInBoost, boostStartGap, years, actualCompYear, autoCleanGaps, preserveJumps, jumpRetention, lockDemographics, lockYear]);
+          }, [matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, phaseInBoost, boostStartGap, years, actualCompYear, autoCleanGaps, preserveJumps, jumpRetention, lockDemographics, lockYear, useRetirement, retirementCount, targetJumps, jumpThreshold, jumpShrinkAmount, actualTargetGapYear]);
 
           const memberNetSummary = useMemo(() => {
             let trajectory = [];
@@ -874,7 +945,21 @@
                               </select>
                             </div>
                           )}
-                          <span class="text-[9px] text-slate-500 leading-tight block mt-1">Allows staff to age normally until the selected year. After that, the distribution is frozen in place to simulate steady-state turnover, preventing step costs from artificially zeroing out.</span>
+                          <span class="text-[9px] text-slate-500 leading-tight block mt-1">Allows staff to age normally until the selected year. After that, the distribution is frozen in place to simulate steady-state turnover.</span>
+                        </div>
+                      </label>
+
+                      <label class="flex items-start gap-3 cursor-pointer p-2 rounded border border-slate-800 hover:bg-slate-800/50 transition">
+                        <input type="checkbox" checked={useRetirement} onChange={(e) => setUseRetirement(e.target.checked)} class="w-5 h-5 accent-emerald-500 mt-1" />
+                        <div class="w-full">
+                          <span class="text-sm font-bold text-white block">Simulate Annual Retirements (Fixed Count)</span>
+                          {useRetirement && (
+                            <div class="mt-2 flex items-center gap-2">
+                              <input type="number" step="0.5" min="0" value={retirementCount} onChange={(e) => setRetirementCount(Number(e.target.value))} onClick={e => e.stopPropagation()} class="w-16 bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white" />
+                              <span class="text-[10px] text-slate-400 whitespace-nowrap">Teachers retiring from top step per year</span>
+                            </div>
+                          )}
+                          <span class="text-[9px] text-slate-500 leading-tight block mt-1">Removes a steady number of teachers from the highest step and replaces them with new hires at Step 1 (Bachelors track) to provide stable breakage savings.</span>
                         </div>
                       </label>
 
@@ -899,6 +984,22 @@
                           <input type="number" value={stepCompression} onChange={(e) => setStepCompression(Number(e.target.value))} onClick={e => e.stopPropagation()} class="w-16 bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white" disabled={useSmoothing}/>
                           <span class="text-[10px] text-slate-500">Shrink gaps/yr</span>
                         </div>
+                        
+                        <div class="mt-3 ml-6 border-t border-blue-900/50 pt-3">
+                          <label class="flex items-center gap-2 cursor-pointer">
+                             <input type="checkbox" checked={targetJumps} onChange={(e) => setTargetJumps(e.target.checked)} disabled={useSmoothing} class="w-3 h-3 accent-blue-500" />
+                             <span class={`text-[11px] font-bold ${!useSmoothing && targetJumps ? 'text-blue-400' : 'text-slate-500'}`}>Remove Jump Steps</span>
+                          </label>
+                          {targetJumps && !useSmoothing && (
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                              <span class="text-[10px] text-slate-400">Shrink gaps over $</span>
+                              <input type="number" value={jumpThreshold} onChange={(e) => setJumpThreshold(Number(e.target.value))} class="w-16 bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white" />
+                              <span class="text-[10px] text-slate-400">by extra $</span>
+                              <input type="number" value={jumpShrinkAmount} onChange={(e) => setJumpShrinkAmount(Number(e.target.value))} class="w-16 bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white" />
+                              <span class="text-[10px] text-slate-400">/ yr</span>
+                            </div>
+                          )}
+                        </div>
                       </label>
 
                       <label class={`p-2 block rounded border cursor-pointer transition ${useSmoothing ? 'bg-emerald-900/20 border-emerald-500/50' : 'bg-slate-950 border-slate-800'}`}>
@@ -906,10 +1007,14 @@
                           <input type="radio" checked={useSmoothing} onChange={() => setUseSmoothing(true)} class="accent-emerald-500 w-4 h-4" />
                           <span class="text-sm font-bold text-white">Smooth Steps (Even Gaps)</span>
                         </div>
-                        <div class="flex items-center gap-2 ml-6">
+                        <div class="flex flex-wrap items-center gap-2 ml-6">
                           <span class="text-slate-500 text-xs">$</span>
                           <input type="number" value={targetUniformGap} onChange={(e) => setTargetUniformGap(Number(e.target.value))} onClick={e => e.stopPropagation()} class="w-16 bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white" disabled={!useSmoothing}/>
-                          <span class="text-[10px] text-slate-500">Target gap by end</span>
+                          <span class="text-[10px] text-slate-500">Target gap</span>
+                          <span class="text-[10px] text-slate-500 ml-1">Reach by:</span>
+                          <select value={targetGapYear} onChange={(e) => setTargetGapYear(Number(e.target.value))} disabled={!useSmoothing} class="bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white">
+                            {[...Array(years)].map((_, i) => <option key={i+1} value={i+1}>Year {i+1}</option>)}
+                          </select>
                         </div>
                         
                         <div class="mt-3 ml-6 border-t border-emerald-900/50 pt-3">
