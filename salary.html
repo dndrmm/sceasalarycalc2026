@@ -114,9 +114,6 @@
 
           const [lockDemographics, setLockDemographics] = useState(false);
           const [lockYear, setLockYear] = useState(8);
-          
-          const [useRetirement, setUseRetirement] = useState(false);
-          const [retirementCount, setRetirementCount] = useState(3.5);
 
           const [isConfiguring, setIsConfiguring] = useState(false);
           const [matrix, setMatrix] = useState(DefaultMatrix);
@@ -170,8 +167,6 @@
             retentionPct, 
             applyLockDemographics, 
             lockYearTarget,
-            applyRetirement,
-            retireCountTarget,
             applyTargetJumps,
             jumpThresh,
             jumpShrink,
@@ -197,34 +192,6 @@
                 nextLayout[targetIndex].m30Count += Number(current[i].m30Count);
               }
               nextLayout.forEach(r => r.totalPop = Number(r.bCount) + Number(r.mCount) + Number(r.m30Count));
-
-              // --- BALANCED ATTRITION & RETIREMENT SIMULATION ---
-              if (applyRetirement && retireCountTarget > 0) {
-                let topStepIndex = nextLayout.length - 1;
-                let topRow = nextLayout[topStepIndex];
-                let bottomRow = nextLayout[0]; 
-
-                let actualRetiring = Math.min(topRow.totalPop, retireCountTarget);
-
-                if (topRow.totalPop > 0 && actualRetiring > 0) {
-                    let ratioB = topRow.bCount / topRow.totalPop;
-                    let ratioM = topRow.mCount / topRow.totalPop;
-                    let ratioM30 = topRow.m30Count / topRow.totalPop;
-
-                    let bRetiring = actualRetiring * ratioB;
-                    let mRetiring = actualRetiring * ratioM;
-                    let m30Retiring = actualRetiring * ratioM30;
-
-                    topRow.bCount = Math.max(0, topRow.bCount - bRetiring);
-                    topRow.mCount = Math.max(0, topRow.mCount - mRetiring);
-                    topRow.m30Count = Math.max(0, topRow.m30Count - m30Retiring);
-                    topRow.totalPop = Math.max(0, topRow.totalPop - actualRetiring);
-
-                    bottomRow.bCount += actualRetiring;
-                    bottomRow.totalPop += actualRetiring;
-                }
-              }
-              // --------------------------------------------
 
               let compactedThisYear = false;
               if (y === compYear) {
@@ -460,14 +427,12 @@
                 jumpRetention, 
                 lockDemographics, 
                 lockYear,
-                useRetirement,
-                retirementCount,
                 targetJumps,
                 jumpThreshold,
                 jumpShrinkAmount,
                 actualTargetGapYear
             );
-          }, [matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, phaseInBoost, boostStartGap, years, actualCompYear, autoCleanGaps, preserveJumps, jumpRetention, lockDemographics, lockYear, useRetirement, retirementCount, targetJumps, jumpThreshold, jumpShrinkAmount, actualTargetGapYear]);
+          }, [matrix, annualIncreases, superMaxAmount, stepCompression, targetCompactionCuts, useSmoothing, targetUniformGap, useSmartBoost, cosmeticGapOverride, phaseInBoost, boostStartGap, years, actualCompYear, autoCleanGaps, preserveJumps, jumpRetention, lockDemographics, lockYear, targetJumps, jumpThreshold, jumpShrinkAmount, actualTargetGapYear]);
 
           const memberNetSummary = useMemo(() => {
             let trajectory = [];
@@ -946,20 +911,6 @@
                             </div>
                           )}
                           <span class="text-[9px] text-slate-500 leading-tight block mt-1">Allows staff to age normally until the selected year. After that, the distribution is frozen in place to simulate steady-state turnover.</span>
-                        </div>
-                      </label>
-
-                      <label class="flex items-start gap-3 cursor-pointer p-2 rounded border border-slate-800 hover:bg-slate-800/50 transition">
-                        <input type="checkbox" checked={useRetirement} onChange={(e) => setUseRetirement(e.target.checked)} class="w-5 h-5 accent-emerald-500 mt-1" />
-                        <div class="w-full">
-                          <span class="text-sm font-bold text-white block">Simulate Annual Retirements (Fixed Count)</span>
-                          {useRetirement && (
-                            <div class="mt-2 flex items-center gap-2">
-                              <input type="number" step="0.5" min="0" value={retirementCount} onChange={(e) => setRetirementCount(Number(e.target.value))} onClick={e => e.stopPropagation()} class="w-16 bg-slate-950 border border-slate-700 rounded p-1 text-xs text-white" />
-                              <span class="text-[10px] text-slate-400 whitespace-nowrap">Teachers retiring from top step per year</span>
-                            </div>
-                          )}
-                          <span class="text-[9px] text-slate-500 leading-tight block mt-1">Removes a steady number of teachers from the highest step and replaces them with new hires at Step 1 (Bachelors track) to provide stable breakage savings.</span>
                         </div>
                       </label>
 
